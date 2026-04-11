@@ -14,6 +14,11 @@ import TopBar from "@/components/TopBar";
 import WeekView from "@/components/WeekView";
 import ChatPanel from "@/components/ChatPanel";
 
+function truncate(text: string, max: number) {
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
 export default function CalendarApp() {
   const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -40,7 +45,9 @@ export default function CalendarApp() {
       const res = await fetch(`/api/calendar/events?${params.toString()}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `status ${res.status}`);
+        const code = body?.error ?? `status ${res.status}`;
+        const detail = body?.detail ? ` — ${truncate(body.detail, 220)}` : "";
+        throw new Error(`${code}${detail}`);
       }
       const data = await res.json();
       setEvents(data.events ?? []);
