@@ -11,8 +11,14 @@ read-only awareness of the events currently in view.
 - **Week view** mimicking the Google Calendar UI: sticky header, mini-month
   sidebar, all-day row, hour grid, current-time indicator, and overlap-safe
   event columns.
-- **Gemini chat panel** (`gemini-1.5-flash`) that receives the week's events
-  as context, so you can ask things like
+- **Local scratch layer** — drag events to move them, drag the bottom edge
+  to resize, click to edit title/times, click an empty slot to create a
+  new event. Everything is stored in `localStorage` keyed per user.
+  **Google Calendar is never written to** — the app reads Google events
+  and keeps your edits strictly local, so nothing you do here shows up in
+  your real calendar.
+- **Gemini chat panel** (`gemini-2.5-flash`) that receives the week's events
+  (including your local edits) as context, so you can ask things like
   *"What meetings do I have today?"* or *"Find a 30 minute free slot this week."*
 - **Automatic token refresh** for long-running sessions.
 
