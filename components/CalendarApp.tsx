@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
 import type { CalendarEvent } from "@/lib/types";
 import {
   addWeeksSafe,
@@ -9,22 +10,54 @@ import {
   getWeekDays,
   getWeekRange,
 } from "@/lib/dates";
+import {
+  addLocalEvent,
+  deleteEvent as deleteInStore,
+  emptyStore,
+  loadStore,
+  mergeEvents,
+  patchEvent,
+  saveStore,
+  type LocalOverride,
+  type LocalStore,
+} from "@/lib/localStore";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import WeekView from "@/components/WeekView";
 import ChatPanel from "@/components/ChatPanel";
+import EventModal from "@/components/EventModal";
 
 function truncate(text: string, max: number) {
   if (!text) return "";
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
+type EditingState =
+  | { mode: "edit"; event: CalendarEvent }
+  | { mode: "create"; event: CalendarEvent }
+  | null;
+
 export default function CalendarApp() {
+  const { data: session } = useSession();
+  const userKey = session?.user?.email ?? "anonymous";
+
   const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
+  const [store, setStore] = useState<LocalStore>(() => emptyStore());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(true);
+  const [editing, setEditing] = useState<EditingState>(null);
+
+  // Load per-user store from localStorage on mount / user change.
+  useEffect(() => {
+    setStore(loadStore(userKey));
+  }, [userKey]);
+
+  // Persist store to localStorage on change.
+  useEffect(() => {
+    saveStore(userKey, store);
+  }, [userKey, store]);
 
   const weekDays = useMemo(() => getWeekDays(anchorDate), [anchorDate]);
   const weekRange = useMemo(() => getWeekRange(anchorDate), [anchorDate]);
@@ -33,6 +66,11 @@ export default function CalendarApp() {
     const end = weekDays[6];
     return `Week of ${format(start, "MMM d, yyyy")} – ${format(end, "MMM d, yyyy")}`;
   }, [weekDays]);
+
+  const events = useMemo(
+    () => mergeEvents(googleEvents, store),
+    [googleEvents, store],
+  );
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -50,10 +88,10 @@ export default function CalendarApp() {
         throw new Error(`${code}${detail}`);
       }
       const data = await res.json();
-      setEvents(data.events ?? []);
+      setGoogleEvents(data.events ?? []);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load events");
-      setEvents([]);
+      setGoogleEvents([]);
     } finally {
       setLoading(false);
     }
@@ -66,6 +104,55 @@ export default function CalendarApp() {
   const goToday = () => setAnchorDate(new Date());
   const goPrev = () => setAnchorDate((d) => addWeeksSafe(d, -1));
   const goNext = () => setAnchorDate((d) => addWeeksSafe(d, 1));
+
+  // Mutations — all go through the local store, never hit Google.
+  const handlePatchEvent = useCallback(
+    (id: string, patch: LocalOverride) => {
+      setStore((s) => patchEvent(s, id, patch));
+    },
+    [],
+  );
+
+  const handleCreateAt = useCallback((start: Date, end: Date) => {
+    const draft: CalendarEvent = {
+      id: "__draft__",
+      summary: "",
+      description: "",
+      location: "",
+      start: start.toISOString(),
+      end: end.toISOString(),
+      allDay: false,
+      htmlLink: null,
+      colorId: null,
+    };
+    setEditing({ mode: "create", event: draft });
+  }, []);
+
+  const handleOpenEdit = useCallback((event: CalendarEvent) => {
+    setEditing({ mode: "edit", event });
+  }, []);
+
+  const handleModalSave = (patch: {
+    summary: string;
+    start: string;
+    end: string;
+    description?: string;
+    location?: string;
+  }) => {
+    if (!editing) return;
+    if (editing.mode === "create") {
+      setStore((s) => addLocalEvent(s, patch).store);
+    } else {
+      setStore((s) => patchEvent(s, editing.event.id, patch));
+    }
+    setEditing(null);
+  };
+
+  const handleModalDelete = () => {
+    if (!editing || editing.mode !== "edit") return;
+    setStore((s) => deleteInStore(s, editing.event.id));
+    setEditing(null);
+  };
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
@@ -87,7 +174,15 @@ export default function CalendarApp() {
               {error}
             </div>
           )}
-          <WeekView days={weekDays} events={events} loading={loading} />
+          <WeekView
+            days={weekDays}
+            events={events}
+            loading={loading}
+            store={store}
+            onPatchEvent={handlePatchEvent}
+            onOpenEvent={handleOpenEdit}
+            onCreateAt={handleCreateAt}
+          />
         </main>
 
         {chatOpen && (
@@ -100,6 +195,15 @@ export default function CalendarApp() {
           </aside>
         )}
       </div>
+
+      <EventModal
+        open={editing !== null}
+        event={editing?.event ?? null}
+        isNew={editing?.mode === "create"}
+        onClose={() => setEditing(null)}
+        onSave={handleModalSave}
+        onDelete={handleModalDelete}
+      />
     </div>
   );
 }

@@ -1,45 +1,94 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { format, isSameDay } from "date-fns";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { addMinutes, format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/types";
+import { isLocalId, isModified, type LocalOverride, type LocalStore } from "@/lib/localStore";
 import { formatDayNumber, formatDayShort, formatHourLabel } from "@/lib/dates";
 
 type Props = {
   days: Date[];
   events: CalendarEvent[];
   loading: boolean;
+  store: LocalStore;
+  onPatchEvent: (id: string, patch: LocalOverride) => void;
+  onOpenEvent: (event: CalendarEvent) => void;
+  onCreateAt: (start: Date, end: Date) => void;
 };
 
 const HOUR_HEIGHT = 48; // px per hour
+const SNAP_MIN = 15;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const DRAG_THRESHOLD_PX = 4;
 
-export default function WeekView({ days, events, loading }: Props) {
+type DragState =
+  | {
+      kind: "move";
+      id: string;
+      origStart: Date;
+      origEnd: Date;
+      pointerStartY: number;
+      pointerStartX: number;
+      startDayIndex: number;
+      currentStart: Date;
+      currentEnd: Date;
+      moved: boolean;
+    }
+  | {
+      kind: "resize";
+      id: string;
+      origStart: Date;
+      origEnd: Date;
+      pointerStartY: number;
+      currentEnd: Date;
+      moved: boolean;
+    }
+  | null;
+
+export default function WeekView({
+  days,
+  events,
+  loading,
+  store,
+  onPatchEvent,
+  onOpenEvent,
+  onCreateAt,
+}: Props) {
   const [now, setNow] = useState<Date>(() => new Date());
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [drag, setDrag] = useState<DragState>(null);
+  const dragRef = useRef<DragState>(null);
+  dragRef.current = drag;
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  // Scroll to ~7 AM on first render
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 7 * HOUR_HEIGHT;
     }
   }, []);
 
-  const timedEventsByDay = useMemo(() => {
+  /* ------------------------------------------------------------------ */
+  /* Event bucketing                                                    */
+  /* ------------------------------------------------------------------ */
+  const timedByDay = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
-    for (const day of days) {
-      map[day.toDateString()] = [];
-    }
+    for (const day of days) map[day.toDateString()] = [];
     for (const ev of events) {
       if (!ev.start || !ev.end || ev.allDay) continue;
       const s = new Date(ev.start);
-      const dayKey = days.find((d) => isSameDay(d, s))?.toDateString();
-      if (dayKey) map[dayKey]?.push(ev);
+      const key = days.find((d) => isSameDay(d, s))?.toDateString();
+      if (key) map[key]!.push(ev);
     }
     return map;
   }, [events, days]);
@@ -51,15 +100,212 @@ export default function WeekView({ days, events, loading }: Props) {
       if (!ev.allDay || !ev.start) continue;
       const s = new Date(ev.start);
       const key = days.find((d) => isSameDay(d, s))?.toDateString();
-      if (key) map[key]?.push(ev);
+      if (key) map[key]!.push(ev);
     }
     return map;
   }, [events, days]);
 
+  /* ------------------------------------------------------------------ */
+  /* Drag handling                                                      */
+  /* ------------------------------------------------------------------ */
+  const snapToGrid = (minutes: number) =>
+    Math.round(minutes / SNAP_MIN) * SNAP_MIN;
+
+  // Find which day column (0..6) a clientX falls under. Returns -1 if none.
+  const hitTestDayIndex = (clientX: number, clientY: number): number => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const colEl = el?.closest<HTMLElement>("[data-day-index]");
+    if (!colEl) return -1;
+    const idx = Number(colEl.dataset.dayIndex);
+    return Number.isFinite(idx) ? idx : -1;
+  };
+
+  // Given a clientY and the column element, compute minutes-from-midnight
+  // snapped to SNAP_MIN.
+  const yToMinutes = (clientY: number, colEl: HTMLElement): number => {
+    const rect = colEl.getBoundingClientRect();
+    const px = Math.max(0, Math.min(rect.height, clientY - rect.top));
+    const minutes = (px / HOUR_HEIGHT) * 60;
+    return snapToGrid(minutes);
+  };
+
+  const startMoveDrag = (ev: CalendarEvent, e: React.PointerEvent) => {
+    if (!ev.start || !ev.end) return;
+    e.stopPropagation();
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    const origStart = new Date(ev.start);
+    const origEnd = new Date(ev.end);
+    const startDayIndex = days.findIndex((d) => isSameDay(d, origStart));
+    setDrag({
+      kind: "move",
+      id: ev.id,
+      origStart,
+      origEnd,
+      pointerStartX: e.clientX,
+      pointerStartY: e.clientY,
+      startDayIndex,
+      currentStart: origStart,
+      currentEnd: origEnd,
+      moved: false,
+    });
+  };
+
+  const startResizeDrag = (ev: CalendarEvent, e: React.PointerEvent) => {
+    if (!ev.start || !ev.end) return;
+    e.stopPropagation();
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    const origStart = new Date(ev.start);
+    const origEnd = new Date(ev.end);
+    setDrag({
+      kind: "resize",
+      id: ev.id,
+      origStart,
+      origEnd,
+      pointerStartY: e.clientY,
+      currentEnd: origEnd,
+      moved: false,
+    });
+  };
+
+  const onPointerMoveWindow = useCallback(
+    (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+
+      if (d.kind === "move") {
+        const dx = e.clientX - d.pointerStartX;
+        const dy = e.clientY - d.pointerStartY;
+        const moved = d.moved || Math.hypot(dx, dy) > DRAG_THRESHOLD_PX;
+
+        // Minutes delta from Y motion.
+        const dMin = snapToGrid((dy / HOUR_HEIGHT) * 60);
+        // Day delta from which column we're hovering (fallback: no change).
+        const hoverIdx = hitTestDayIndex(e.clientX, e.clientY);
+        const dayDelta =
+          hoverIdx >= 0 && d.startDayIndex >= 0
+            ? hoverIdx - d.startDayIndex
+            : 0;
+
+        const newStart = addMinutes(d.origStart, dMin + dayDelta * 24 * 60);
+        const durationMin =
+          (d.origEnd.getTime() - d.origStart.getTime()) / 60000;
+        const newEnd = addMinutes(newStart, durationMin);
+
+        setDrag({
+          ...d,
+          currentStart: newStart,
+          currentEnd: newEnd,
+          moved,
+        });
+      } else if (d.kind === "resize") {
+        const dy = e.clientY - d.pointerStartY;
+        const moved = d.moved || Math.abs(dy) > DRAG_THRESHOLD_PX;
+        const dMin = snapToGrid((dy / HOUR_HEIGHT) * 60);
+        let newEnd = addMinutes(d.origEnd, dMin);
+        // Enforce at least SNAP_MIN length.
+        const minEnd = addMinutes(d.origStart, SNAP_MIN);
+        if (newEnd < minEnd) newEnd = minEnd;
+        setDrag({ ...d, currentEnd: newEnd, moved });
+      }
+    },
+    [],
+  );
+
+  const onPointerUpWindow = useCallback(
+    (_e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+
+      if (d.moved) {
+        if (d.kind === "move") {
+          onPatchEvent(d.id, {
+            start: d.currentStart.toISOString(),
+            end: d.currentEnd.toISOString(),
+          });
+        } else if (d.kind === "resize") {
+          onPatchEvent(d.id, { end: d.currentEnd.toISOString() });
+        }
+      }
+      setDrag(null);
+    },
+    [onPatchEvent],
+  );
+
+  useEffect(() => {
+    window.addEventListener("pointermove", onPointerMoveWindow);
+    window.addEventListener("pointerup", onPointerUpWindow);
+    window.addEventListener("pointercancel", onPointerUpWindow);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMoveWindow);
+      window.removeEventListener("pointerup", onPointerUpWindow);
+      window.removeEventListener("pointercancel", onPointerUpWindow);
+    };
+  }, [onPointerMoveWindow, onPointerUpWindow]);
+
+  /* ------------------------------------------------------------------ */
+  /* Click-to-create on empty slot                                      */
+  /* ------------------------------------------------------------------ */
+  const handleColumnPointerDown = (dayIdx: number, e: React.PointerEvent) => {
+    // Let event-block pointerdown stop propagation; this only fires for
+    // empty grid clicks.
+    if ((e.target as HTMLElement).closest("[data-event-block]")) return;
+    // Record start so a drag that moves more than threshold is ignored.
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const colEl = e.currentTarget as HTMLElement;
+    const onUp = (u: PointerEvent) => {
+      window.removeEventListener("pointerup", onUp);
+      const moved =
+        Math.hypot(u.clientX - startX, u.clientY - startY) > DRAG_THRESHOLD_PX;
+      if (moved) return;
+      const minutes = yToMinutes(u.clientY, colEl);
+      const day = days[dayIdx];
+      const start = new Date(day);
+      start.setHours(0, 0, 0, 0);
+      start.setMinutes(minutes);
+      const end = addMinutes(start, 60);
+      onCreateAt(start, end);
+    };
+    window.addEventListener("pointerup", onUp);
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Render helpers                                                     */
+  /* ------------------------------------------------------------------ */
   const today = new Date();
 
+  // While dragging, override the event's displayed time so it moves
+  // smoothly before the store commit happens on pointer up.
+  const displayEvents = useMemo(() => {
+    if (!drag) return events;
+    return events.map((e) => {
+      if (e.id !== drag.id) return e;
+      if (drag.kind === "move") {
+        return {
+          ...e,
+          start: drag.currentStart.toISOString(),
+          end: drag.currentEnd.toISOString(),
+        };
+      }
+      return { ...e, end: drag.currentEnd.toISOString() };
+    });
+  }, [events, drag]);
+
+  // Rebucket after drag-display override so moves across days are visible.
+  const dragDisplayByDay = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {};
+    for (const day of days) map[day.toDateString()] = [];
+    for (const ev of displayEvents) {
+      if (!ev.start || !ev.end || ev.allDay) continue;
+      const s = new Date(ev.start);
+      const key = days.find((d) => isSameDay(d, s))?.toDateString();
+      if (key) map[key]!.push(ev);
+    }
+    return map;
+  }, [displayEvents, days]);
+
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
+    <div className="flex h-full min-h-0 w-full flex-col select-none">
       {/* Day header row */}
       <div className="grid grid-cols-[64px_repeat(7,1fr)] border-b border-gcal-border">
         <div className="border-r border-gcal-border" />
@@ -108,7 +354,8 @@ export default function WeekView({ days, events, loading }: Props) {
                 <div
                   key={ev.id}
                   title={ev.summary}
-                  className="mb-0.5 truncate rounded bg-blue-100 px-1 text-[11px] text-blue-800"
+                  onClick={() => onOpenEvent(ev)}
+                  className="mb-0.5 cursor-pointer truncate rounded bg-blue-100 px-1 text-[11px] text-blue-800 hover:bg-blue-200"
                 >
                   {ev.summary}
                 </div>
@@ -129,6 +376,7 @@ export default function WeekView({ days, events, loading }: Props) {
         className="scroll-thin relative flex-1 overflow-y-auto"
       >
         <div
+          ref={gridRef}
           className="grid grid-cols-[64px_repeat(7,1fr)]"
           style={{ height: `${HOUR_HEIGHT * 24}px` }}
         >
@@ -148,17 +396,18 @@ export default function WeekView({ days, events, loading }: Props) {
           </div>
 
           {/* Day columns */}
-          {days.map((day) => {
+          {days.map((day, dayIdx) => {
             const key = day.toDateString();
-            const dayEvents = timedEventsByDay[key] ?? [];
+            const dayEvents = (drag ? dragDisplayByDay : timedByDay)[key] ?? [];
             const isToday = isSameDay(day, today);
             return (
               <div
                 key={key}
-                className="relative border-r border-gcal-border"
+                data-day-index={dayIdx}
+                onPointerDown={(e) => handleColumnPointerDown(dayIdx, e)}
+                className="relative cursor-cell border-r border-gcal-border"
                 style={{ height: `${HOUR_HEIGHT * 24}px` }}
               >
-                {/* Hour grid lines */}
                 {HOURS.map((h) => (
                   <div
                     key={h}
@@ -167,20 +416,29 @@ export default function WeekView({ days, events, loading }: Props) {
                   />
                 ))}
 
-                {/* Current time indicator (only on today's column) */}
                 {isToday && <NowLine now={now} />}
 
-                {/* Events */}
-                {layoutEvents(dayEvents).map(({ ev, topPct, heightPct, col, colCount }) => (
-                  <EventBlock
-                    key={ev.id}
-                    ev={ev}
-                    topPct={topPct}
-                    heightPct={heightPct}
-                    col={col}
-                    colCount={colCount}
-                  />
-                ))}
+                {layoutEvents(dayEvents).map(
+                  ({ ev, topPct, heightPct, col, colCount }) => (
+                    <EventBlock
+                      key={ev.id}
+                      ev={ev}
+                      topPct={topPct}
+                      heightPct={heightPct}
+                      col={col}
+                      colCount={colCount}
+                      isDragging={drag?.id === ev.id}
+                      modified={isModified(store, ev.id) || isLocalId(ev.id)}
+                      onPointerDown={(e) => startMoveDrag(ev, e)}
+                      onResizeHandlePointerDown={(e) => startResizeDrag(ev, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (drag?.moved) return;
+                        onOpenEvent(ev);
+                      }}
+                    />
+                  ),
+                )}
               </div>
             );
           })}
@@ -222,7 +480,6 @@ type Laid = {
   colCount: number;
 };
 
-// Simple column layout for overlapping events.
 function layoutEvents(evs: CalendarEvent[]): Laid[] {
   const sorted = [...evs].sort((a, b) => {
     const as = a.start ? new Date(a.start).getTime() : 0;
@@ -278,19 +535,37 @@ function overlaps(a: CalendarEvent, b: CalendarEvent) {
   return as < be && bs < ae;
 }
 
+type EventBlockProps = Laid & {
+  isDragging: boolean;
+  modified: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onResizeHandlePointerDown: (e: React.PointerEvent) => void;
+  onClick: (e: React.MouseEvent) => void;
+};
+
 function EventBlock({
   ev,
   topPct,
   heightPct,
   col,
   colCount,
-}: Laid) {
+  isDragging,
+  modified,
+  onPointerDown,
+  onResizeHandlePointerDown,
+  onClick,
+}: EventBlockProps) {
   const widthPct = 100 / colCount;
   const leftPct = col * widthPct;
 
   return (
     <div
-      className="absolute overflow-hidden rounded-md bg-gcal-blue px-1.5 py-1 text-[11px] text-white shadow-sm hover:opacity-95"
+      data-event-block
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      className={`absolute cursor-grab overflow-hidden rounded-md bg-gcal-blue px-1.5 py-1 text-[11px] text-white shadow-sm hover:opacity-95 active:cursor-grabbing ${
+        isDragging ? "opacity-80 ring-2 ring-blue-300" : ""
+      }`}
       style={{
         top: `${topPct}%`,
         height: `${heightPct}%`,
@@ -299,12 +574,26 @@ function EventBlock({
       }}
       title={`${ev.summary}\n${ev.start ? format(new Date(ev.start), "p") : ""} – ${ev.end ? format(new Date(ev.end), "p") : ""}`}
     >
-      <div className="truncate font-medium">{ev.summary}</div>
+      <div className="flex items-center gap-1 truncate font-medium">
+        {modified && (
+          <span
+            className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-yellow-300"
+            title="Modified locally"
+          />
+        )}
+        <span className="truncate">{ev.summary}</span>
+      </div>
       {ev.start && ev.end && (
         <div className="truncate opacity-90">
           {format(new Date(ev.start), "p")} – {format(new Date(ev.end), "p")}
         </div>
       )}
+      {/* Resize handle */}
+      <div
+        onPointerDown={onResizeHandlePointerDown}
+        className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize"
+        title="Drag to resize"
+      />
     </div>
   );
 }
