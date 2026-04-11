@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     messages: ChatMessage[];
     events?: CalendarEventLite[];
     viewLabel?: string;
+    scheduleText?: string;
   };
   try {
     body = await req.json();
@@ -56,22 +57,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { messages, events = [], viewLabel = "" } = body;
+  const {
+    messages,
+    events = [],
+    viewLabel = "",
+    scheduleText = "",
+  } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: "messages_required" }, { status: 400 });
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
+  const scheduleSection = scheduleText
+    ? scheduleText
+    : `Events in view (no pre-computed schedule):\n${formatEventsForPrompt(events)}`;
+
   const systemInstruction = [
     "You are a helpful AI calendar assistant embedded in a Google Calendar style web app.",
-    "You have read-only awareness of the user's events in the currently visible calendar view.",
-    "Be concise, friendly, and action-oriented.",
-    "When summarizing, group by day when helpful and surface conflicts or free slots.",
-    "Never fabricate events that are not in the provided context.",
+    "",
+    "HARD RULES — read carefully:",
+    "1. The SCHEDULE section below is the complete, authoritative view of the user's week. It already lists every event AND the computed free slots per day. Trust it.",
+    "2. Any time that is NOT covered by an event is FREE and available to schedule. The user's schedulable window is 8:00 AM – 10:00 PM local time. Anything outside that is off-hours.",
+    "3. When the user asks to rearrange, plan, or optimize, you MUST produce a concrete suggested schedule (specific times, specific days). Do NOT refuse or say you can't — you are allowed to propose any arrangement that fits the free slots.",
+    "4. The user applies your suggestions by DRAGGING events in the UI (or by clicking an event to edit it). You cannot mutate the calendar directly, so always phrase changes as 'Move X from A to B' or 'Drag X to B'. Never claim to have made a change.",
+    "5. Never invent events that are not in the SCHEDULE section. If asked about something that isn't there, say so.",
+    "6. Be concise. Prefer bullet lists grouped by day. Use local 12-hour times (e.g. '3:00 PM').",
     "",
     `Current view: ${viewLabel || "(unspecified)"}`,
-    "Events in view:",
-    formatEventsForPrompt(events),
+    "",
+    "SCHEDULE:",
+    scheduleSection,
   ].join("\n");
 
   // Model name is overridable via env so we can swap without a code change

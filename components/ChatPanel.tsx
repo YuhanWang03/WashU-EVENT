@@ -6,10 +6,16 @@ import type { CalendarEvent, ChatMessage } from "@/lib/types";
 type Props = {
   events: CalendarEvent[];
   viewLabel: string;
+  scheduleText: string;
   onClose: () => void;
 };
 
-export default function ChatPanel({ events, viewLabel, onClose }: Props) {
+export default function ChatPanel({
+  events,
+  viewLabel,
+  scheduleText,
+  onClose,
+}: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -47,6 +53,7 @@ export default function ChatPanel({ events, viewLabel, onClose }: Props) {
             allDay: e.allDay,
           })),
           viewLabel,
+          scheduleText,
         }),
       });
 
