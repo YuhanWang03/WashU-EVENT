@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #3c4043;
+}
+
+html,
+body {
+  height: 100%;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: "Google Sans", "Roboto", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar styling to match Google apps */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 4px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: #bdc1c6;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
