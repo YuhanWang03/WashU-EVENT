@@ -27,6 +27,8 @@ import WeekView from "@/components/WeekView";
 import ChatPanel from "@/components/ChatPanel";
 import EventModal from "@/components/EventModal";
 import { buildScheduleText } from "@/lib/schedule";
+import { composeLocalDate, type CalendarAction } from "@/lib/actions";
+import { buildHealthText, type HealthSummary } from "@/lib/health";
 
 function truncate(text: string, max: number) {
   if (!text) return "";
@@ -49,6 +51,7 @@ export default function CalendarApp() {
   const [error, setError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(true);
   const [editing, setEditing] = useState<EditingState>(null);
+  const [health, setHealth] = useState<HealthSummary | null>(null);
 
   // Load per-user store from localStorage on mount / user change.
   useEffect(() => {
@@ -78,6 +81,8 @@ export default function CalendarApp() {
     [weekDays, events],
   );
 
+  const healthText = useMemo(() => buildHealthText(health), [health]);
+
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -106,6 +111,28 @@ export default function CalendarApp() {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Fetch Google Fit summary once per session. Failures just null out
+  // the state — the chat still works, Gemini just won't be health-aware.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/fit/summary");
+        if (!res.ok) {
+          if (!cancelled) setHealth({ available: false });
+          return;
+        }
+        const data = (await res.json()) as HealthSummary;
+        if (!cancelled) setHealth(data);
+      } catch {
+        if (!cancelled) setHealth({ available: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userKey]);
 
   const goToday = () => setAnchorDate(new Date());
   const goPrev = () => setAnchorDate((d) => addWeeksSafe(d, -1));
@@ -160,6 +187,48 @@ export default function CalendarApp() {
     setEditing(null);
   };
 
+  // Apply a batch of structured actions coming from Gemini. Each action is
+  // dispatched through the local store, exactly like a manual drag/edit.
+  const handleApplyActions = useCallback(
+    (actions: CalendarAction[]): number => {
+      if (!actions.length) return 0;
+      let applied = 0;
+      setStore((s) => {
+        let next = s;
+        for (const a of actions) {
+          try {
+            if (a.type === "move") {
+              const start = composeLocalDate(a.day, a.start).toISOString();
+              const end = composeLocalDate(a.day, a.end).toISOString();
+              next = patchEvent(next, a.id, { start, end });
+              applied++;
+            } else if (a.type === "rename") {
+              next = patchEvent(next, a.id, { summary: a.summary });
+              applied++;
+            } else if (a.type === "delete") {
+              next = deleteInStore(next, a.id);
+              applied++;
+            } else if (a.type === "create") {
+              const start = composeLocalDate(a.day, a.start).toISOString();
+              const end = composeLocalDate(a.day, a.end).toISOString();
+              next = addLocalEvent(next, {
+                summary: a.summary,
+                start,
+                end,
+              }).store;
+              applied++;
+            }
+          } catch {
+            // Skip malformed actions rather than aborting the whole batch.
+          }
+        }
+        return next;
+      });
+      return applied;
+    },
+    [],
+  );
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
       <TopBar
@@ -197,7 +266,10 @@ export default function CalendarApp() {
               events={events}
               viewLabel={viewLabel}
               scheduleText={scheduleText}
+              healthText={healthText}
+              health={health}
               onClose={() => setChatOpen(false)}
+              onApplyActions={handleApplyActions}
             />
           </aside>
         )}

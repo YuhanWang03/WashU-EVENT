@@ -63,7 +63,7 @@ export function buildScheduleText(
     for (const ev of timed) {
       const loc = ev.location ? ` @ ${ev.location}` : "";
       lines.push(
-        `    - ${format(ev._s, "h:mm a")} – ${format(ev._e, "h:mm a")}: ${ev.summary}${loc}`,
+        `    - [id=${ev.id}] ${format(ev._s, "h:mm a")} – ${format(ev._e, "h:mm a")}: ${ev.summary}${loc}`,
       );
     }
 

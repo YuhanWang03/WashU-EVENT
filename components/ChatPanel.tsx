@@ -2,24 +2,39 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CalendarEvent, ChatMessage } from "@/lib/types";
+import {
+  parseActionBlock,
+  summarizeActions,
+  type CalendarAction,
+} from "@/lib/actions";
+import { healthPillLabel, type HealthSummary } from "@/lib/health";
+
+type ChatMessageWithActions = ChatMessage & { appliedNote?: string };
 
 type Props = {
   events: CalendarEvent[];
   viewLabel: string;
   scheduleText: string;
+  healthText?: string;
+  health?: HealthSummary | null;
   onClose: () => void;
+  onApplyActions?: (actions: CalendarAction[]) => number;
 };
 
 export default function ChatPanel({
   events,
   viewLabel,
   scheduleText,
+  healthText,
+  health,
   onClose,
+  onApplyActions,
 }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessageWithActions[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -28,14 +43,18 @@ export default function ChatPanel({
     }
   }, [messages, sending]);
 
-  const send = async (textOverride?: string) => {
+  const send = async (textOverride?: string, opts?: { isRetry?: boolean }) => {
     const text = (textOverride ?? input).trim();
     if (!text || sending) return;
-    setInput("");
+    if (!opts?.isRetry) setInput("");
     setError(null);
+    setLastPrompt(text);
 
-    const next: ChatMessage[] = [...messages, { role: "user", content: text }];
-    setMessages(next);
+    // On a retry we don't want to double-append the user bubble.
+    const next: ChatMessage[] = opts?.isRetry
+      ? messages
+      : [...messages, { role: "user", content: text }];
+    if (!opts?.isRetry) setMessages(next);
     setSending(true);
 
     try {
@@ -43,7 +62,9 @@ export default function ChatPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: next,
+          messages: opts?.isRetry
+            ? [...messages, { role: "user", content: text }]
+            : next,
           events: events.map((e) => ({
             summary: e.summary,
             start: e.start,
@@ -54,18 +75,35 @@ export default function ChatPanel({
           })),
           viewLabel,
           scheduleText,
+          healthText,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         const code = data?.error ?? `status ${res.status}`;
-        const detail = data?.detail
-          ? ` — ${String(data.detail).slice(0, 260)}`
-          : "";
-        throw new Error(`${code}${detail}`);
+        const detail = data?.detail ? `: ${String(data.detail)}` : "";
+        // Friendly message for the common overload case.
+        if (code === "gemini_overloaded") {
+          throw new Error(
+            "Gemini is temporarily overloaded. Tap Retry to try again.",
+          );
+        }
+        throw new Error(`${code}${detail}`.slice(0, 320));
       }
-      setMessages((prev) => [...prev, { role: "model", content: data.reply }]);
+
+      // Pull out any <calendar-actions> block, apply them, and show a
+      // cleaned reply (without the raw JSON) plus an "Applied: ..." note.
+      const { cleaned, actions } = parseActionBlock(data.reply ?? "");
+      let appliedNote: string | undefined;
+      if (actions.length > 0 && onApplyActions) {
+        const n = onApplyActions(actions);
+        if (n > 0) appliedNote = summarizeActions(actions.slice(0, n));
+      }
+      setMessages((prev) => [
+        ...prev,
+        { role: "model", content: cleaned || data.reply, appliedNote },
+      ]);
     } catch (e: any) {
       setError(e?.message ?? "Failed to send");
     } finally {
@@ -73,11 +111,18 @@ export default function ChatPanel({
     }
   };
 
+  const retry = () => {
+    if (!lastPrompt || sending) return;
+    send(lastPrompt, { isRetry: true });
+  };
+
   const suggestions = [
-    "Summarize the main points on this page",
-    "What meetings do I have today?",
+    "Rearrange this week by difficulty and my sleep",
+    "Move my hardest tasks to tomorrow morning",
     "Find a 30 minute free slot this week",
   ];
+
+  const healthPill = healthPillLabel(health ?? null);
 
   return (
     <div className="flex h-full flex-col">
@@ -145,8 +190,18 @@ export default function ChatPanel({
         )}
 
         {error && (
-          <div className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">
-            {error}
+          <div className="flex items-start justify-between gap-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+            <span className="flex-1 whitespace-pre-wrap break-words">
+              {error}
+            </span>
+            {lastPrompt && (
+              <button
+                onClick={retry}
+                className="shrink-0 rounded-full border border-red-300 px-2 py-0.5 text-[11px] font-medium text-red-700 hover:bg-red-100"
+              >
+                Retry
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -159,6 +214,14 @@ export default function ChatPanel({
         </div>
         <span className="text-[11px] text-gcal-subtext">+{events.length} events</span>
       </div>
+
+      {healthPill && (
+        <div className="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-gcal-border bg-white px-3 py-2 text-xs text-gcal-text shadow-sm">
+          <HeartIcon />
+          <div className="flex-1 truncate">Google Fit</div>
+          <span className="text-[11px] text-gcal-subtext">{healthPill}</span>
+        </div>
+      )}
 
       {/* Composer */}
       <div className="mx-3 mb-3 rounded-2xl border border-gcal-border bg-white shadow-sm">
@@ -195,20 +258,32 @@ export default function ChatPanel({
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message }: { message: ChatMessageWithActions }) {
   const isUser = message.role === "user";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-          isUser
-            ? "bg-blue-600 text-white"
-            : "bg-gray-100 text-gcal-text"
+        className={`max-w-[85%] space-y-2 rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+          isUser ? "bg-blue-600 text-white" : "bg-gray-100 text-gcal-text"
         }`}
       >
-        {message.content}
+        <div className="whitespace-pre-wrap">{message.content}</div>
+        {message.appliedNote && (
+          <div className="flex items-center gap-1.5 rounded-md bg-green-100 px-2 py-1 text-[11px] font-medium text-green-800">
+            <CheckIcon />
+            {message.appliedNote}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
   );
 }
 
@@ -266,6 +341,13 @@ function CalendarPillIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="#1a73e8">
       <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+    </svg>
+  );
+}
+function HeartIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#ea4335">
+      <path d="M12 21s-7-4.35-9.5-8.5C.5 8.5 3 5 6.5 5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 5 23.5 8.5 21.5 12.5 19 16.65 12 21 12 21z" />
     </svg>
   );
 }
