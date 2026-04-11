@@ -26,6 +26,7 @@ import TopBar from "@/components/TopBar";
 import WeekView from "@/components/WeekView";
 import ChatPanel from "@/components/ChatPanel";
 import EventModal from "@/components/EventModal";
+import { buildScheduleText } from "@/lib/schedule";
 
 function truncate(text: string, max: number) {
   if (!text) return "";
@@ -70,6 +71,11 @@ export default function CalendarApp() {
   const events = useMemo(
     () => mergeEvents(googleEvents, store),
     [googleEvents, store],
+  );
+
+  const scheduleText = useMemo(
+    () => buildScheduleText(weekDays, events),
+    [weekDays, events],
   );
 
   const fetchEvents = useCallback(async () => {
@@ -190,6 +196,7 @@ export default function CalendarApp() {
             <ChatPanel
               events={events}
               viewLabel={viewLabel}
+              scheduleText={scheduleText}
               onClose={() => setChatOpen(false)}
             />
           </aside>
