@@ -52,7 +52,11 @@ export default function ChatPanel({ events, viewLabel, onClose }: Props) {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error ?? `status ${res.status}`);
+        const code = data?.error ?? `status ${res.status}`;
+        const detail = data?.detail
+          ? ` — ${String(data.detail).slice(0, 260)}`
+          : "";
+        throw new Error(`${code}${detail}`);
       }
       setMessages((prev) => [...prev, { role: "model", content: data.reply }]);
     } catch (e: any) {
