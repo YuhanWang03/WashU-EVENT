@@ -74,8 +74,11 @@ export async function POST(req: NextRequest) {
     formatEventsForPrompt(events),
   ].join("\n");
 
+  // Model name is overridable via env so we can swap without a code change
+  // if Google renames / deprecates models again.
+  const modelName = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: modelName,
     systemInstruction,
   });
 
