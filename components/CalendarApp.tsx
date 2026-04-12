@@ -14,6 +14,7 @@ import {
   addLocalEvent,
   deleteEvent as deleteInStore,
   emptyStore,
+  isLocalId,
   loadStore,
   mergeEvents,
   patchEvent,
