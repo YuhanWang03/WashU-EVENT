@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   addMonths,
   endOfMonth,
@@ -18,9 +19,17 @@ type Props = {
 
 export default function Sidebar({ anchorDate, setAnchorDate }: Props) {
   const [miniMonth, setMiniMonth] = useState<Date>(() => anchorDate);
+  const { data: session } = useSession();
 
   const miniGrid = useMemo(() => buildMiniMonth(miniMonth), [miniMonth]);
   const today = new Date();
+
+  // Derive the "primary calendar" row label from the signed-in user.
+  // Google Calendar shows the account holder's display name here; before
+  // this fix we were hardcoding "YK G" so every user saw the same label.
+  const userLabel =
+    displayNameFor(session?.user?.name, session?.user?.email) || "My calendar";
+  const userColor = colorFor(session?.user?.email ?? "anonymous");
 
   return (
     <aside className="flex w-[240px] shrink-0 flex-col bg-white px-3 py-3">
@@ -99,7 +108,7 @@ export default function Sidebar({ anchorDate, setAnchorDate }: Props) {
       <div className="mb-4" />
 
       <SectionHeader title="My calendars" />
-      <CalendarRow color="#1a73e8" label="YK G" checked />
+      <CalendarRow color={userColor} label={userLabel} checked />
       <CalendarRow color="#33b679" label="Birthdays" />
       <CalendarRow color="#f4511e" label="Tasks" />
 
@@ -111,6 +120,41 @@ export default function Sidebar({ anchorDate, setAnchorDate }: Props) {
       </div>
     </aside>
   );
+}
+
+/**
+ * Prefer Google display name ("Yikai Ge"), fall back to the local part of
+ * the email ("yikai.ge"), finally null.
+ */
+function displayNameFor(
+  name: string | null | undefined,
+  email: string | null | undefined,
+): string | null {
+  if (name && name.trim()) return name.trim();
+  if (email && email.includes("@")) return email.split("@")[0];
+  return null;
+}
+
+/**
+ * Deterministic hue from an email so two different accounts get two
+ * different primary-calendar colors instead of a shared blue.
+ */
+function colorFor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  const palette = [
+    "#1a73e8", // Google blue
+    "#d93025", // red
+    "#e37400", // orange
+    "#188038", // green
+    "#8e24aa", // purple
+    "#00796b", // teal
+    "#c2185b", // pink
+    "#5f6368", // graphite
+  ];
+  return palette[h % palette.length];
 }
 
 function buildMiniMonth(date: Date): Date[] {
