@@ -3,9 +3,9 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "Calendar + Gemini",
-  description:
-    "A Google Calendar style week view with a Gemini chat assistant panel.",
+  title: "Cadence",
+  description: "Cadence — a smart scheduling assistant powered by Gemini.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({

@@ -7,9 +7,9 @@ export default function SignInScreen() {
     <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="w-full max-w-md rounded-2xl border border-gcal-border bg-white p-10 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
-          <CalendarLogo />
+          <CadenceLogo size={44} />
           <div>
-            <h1 className="text-xl font-medium text-gcal-text">Calendar</h1>
+            <h1 className="text-xl font-semibold text-gcal-text">Cadence</h1>
             <p className="text-xs text-gcal-subtext">with Gemini assistant</p>
           </div>
         </div>
@@ -40,13 +40,21 @@ export default function SignInScreen() {
   );
 }
 
-function CalendarLogo() {
+function CadenceLogo({ size = 44 }: { size?: number }) {
   return (
-    <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow ring-1 ring-gcal-border">
-      <span className="text-sm font-semibold text-gcal-blue">
-        {new Date().getDate()}
-      </span>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="7" fill="#1a73e8" />
+      <path
+        d="M22 9C19.5 7.4 16 7.4 13.5 9C11 10.6 9.5 13.2 9.5 16C9.5 18.8 11 21.4 13.5 23C16 24.6 19.5 24.6 22 23"
+        stroke="white"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <circle cx="24.5" cy="12" r="1.6" fill="white" />
+      <circle cx="24.5" cy="16" r="1.6" fill="white" />
+      <circle cx="24.5" cy="20" r="1.6" fill="white" />
+    </svg>
   );
 }
 
