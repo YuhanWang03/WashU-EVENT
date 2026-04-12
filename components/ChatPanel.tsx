@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CalendarEvent, ChatMessage } from "@/lib/types";
 import {
   parseActionBlock,
+  sanitizeActions,
   summarizeActions,
   type CalendarAction,
 } from "@/lib/actions";
@@ -107,7 +108,9 @@ export default function ChatPanel({
       const rescheduleAction = actions.find((a) => a.type === "reschedule") as
         | { type: "reschedule"; elapsedMinutes?: number }
         | undefined;
-      const calendarActions = actions.filter((a) => a.type !== "reschedule");
+      const calendarActions = sanitizeActions(
+        actions.filter((a) => a.type !== "reschedule"),
+      );
 
       let appliedNote: string | undefined;
       if (calendarActions.length > 0 && onApplyActions) {
