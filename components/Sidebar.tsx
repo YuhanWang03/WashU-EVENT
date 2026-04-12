@@ -63,7 +63,7 @@ export default function Sidebar({ anchorDate, setAnchorDate }: Props) {
         </div>
 
         <div className="grid grid-cols-7 gap-0 text-center text-[11px] text-gcal-subtext">
-          {"M T W T F S S".split(" ").map((d, i) => (
+          {"S M T W T F S".split(" ").map((d, i) => (
             <div key={i} className="py-1">
               {d}
             </div>
@@ -158,7 +158,7 @@ function colorFor(seed: string): string {
 }
 
 function buildMiniMonth(date: Date): Date[] {
-  const start = startOfWeek(startOfMonth(date), { weekStartsOn: 1 });
+  const start = startOfWeek(startOfMonth(date), { weekStartsOn: 0 });
   const days: Date[] = [];
   for (let i = 0; i < 42; i++) {
     const d = new Date(start);

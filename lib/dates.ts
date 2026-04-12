@@ -8,10 +8,9 @@ import {
   startOfWeek,
 } from "date-fns";
 
-// Google Calendar's default week starts on Monday in many locales.
-// To match the reference screenshot (Mon .. Sun), we use weekStartsOn: 1.
+// Week starts on Sunday (weekStartsOn: 0) to match US calendar convention.
 export function getWeekStart(date: Date): Date {
-  return startOfWeek(date, { weekStartsOn: 1 });
+  return startOfWeek(date, { weekStartsOn: 0 });
 }
 
 export function getWeekDays(date: Date): Date[] {
