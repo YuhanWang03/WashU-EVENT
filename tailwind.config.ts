@@ -10,14 +10,14 @@ const config: Config = {
     extend: {
       colors: {
         gcal: {
-          blue:      "#8fa8b8",   // dusty steel blue — primary accent
-          bluehover: "#7898a8",   // slightly deeper on hover
-          bg:        "#f7f3ef",   // warm off-white canvas
-          panel:     "#faf8f5",   // card / panel surface
-          border:    "#dcd6ce",   // soft warm border
-          text:      "#4a4540",   // warm charcoal
-          subtext:   "#9a9088",   // muted warm gray
-          today:     "#8fa8b8",   // today highlight (same as primary)
+          blue:      "#7B57D2",   // Material You purple — primary
+          bluehover: "#6A48C0",   // deeper purple on hover
+          bg:        "#F5EEFF",   // light lavender background
+          panel:     "#FEFAFF",   // near-white panel surface
+          border:    "#CAC4D0",   // Material outline
+          text:      "#1C1B1F",   // Material on-surface
+          subtext:   "#49454F",   // Material on-surface-variant
+          today:     "#7B57D2",   // today highlight
         },
       },
       fontFamily: {

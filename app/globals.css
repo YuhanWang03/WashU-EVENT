@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f3ef;
-  --foreground: #4a4540;
+  --background: #F5EEFF;
+  --foreground: #1C1B1F;
 }
 
 html,
@@ -26,11 +26,11 @@ body {
   height: 8px;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: #dcd6ce;
+  background: #CAC4D0;
   border-radius: 4px;
 }
 .scroll-thin::-webkit-scrollbar-thumb:hover {
-  background: #c4bcb4;
+  background: #B0A8BE;
 }
 .scroll-thin::-webkit-scrollbar-track {
   background: transparent;

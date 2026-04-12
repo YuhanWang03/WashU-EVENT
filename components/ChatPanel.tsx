@@ -195,7 +195,7 @@ export default function ChatPanel({
               <button
                 key={s}
                 onClick={() => send(s)}
-                className="block w-full rounded-xl border border-gcal-border bg-[#f5ede6] px-3 py-2 text-left text-sm text-gcal-text transition hover:bg-[#ede6de]"
+                className="block w-full rounded-xl border border-gcal-border bg-[#EDE8FF] px-3 py-2 text-left text-sm text-gcal-text transition hover:bg-[#E0D8FF]"
               >
                 {s}
               </button>
@@ -214,14 +214,14 @@ export default function ChatPanel({
         )}
 
         {error && (
-          <div className="flex items-start justify-between gap-2 rounded bg-[#f2e4dc] px-3 py-2 text-xs text-[#8a4535]">
+          <div className="flex items-start justify-between gap-2 rounded bg-[#FFD9EE] px-3 py-2 text-xs text-[#8B1A45]">
             <span className="flex-1 whitespace-pre-wrap break-words">
               {error}
             </span>
             {lastPrompt && (
               <button
                 onClick={retry}
-                className="shrink-0 rounded-full border border-[#d4a898] px-2 py-0.5 text-[11px] font-medium text-[#8a4535] hover:bg-[#e8d4cc]"
+                className="shrink-0 rounded-full border border-[#E87FAD] px-2 py-0.5 text-[11px] font-medium text-[#8B1A45] hover:bg-[#FFC0D8]"
               >
                 Retry
               </button>
@@ -243,11 +243,11 @@ export default function ChatPanel({
         <div
           className={`mx-4 mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm ${
             stateLevel === "peak"
-              ? "border-[#afc8d8] bg-[#dce6ef] text-[#3a5870]"
+              ? "border-[#B39AE8] bg-[#EDE7FF] text-[#4A2FA0]"
               : stateLevel === "good"
-                ? "border-[#aac4aa] bg-[#e2eedf] text-[#4a6a4a]"
+                ? "border-[#aac4aa] bg-[#D8F0DC] text-[#1A5C2A]"
                 : stateLevel === "low"
-                  ? "border-[#d4a898] bg-[#f2e4dc] text-[#8a4535]"
+                  ? "border-[#E87FAD] bg-[#FFD9EE] text-[#8B1A45]"
                   : "border-gcal-border bg-gcal-panel text-gcal-text"
           }`}
         >
@@ -273,7 +273,7 @@ export default function ChatPanel({
           className="max-h-32 w-full resize-none rounded-2xl bg-transparent px-4 pt-3 text-sm text-gcal-text placeholder:text-gcal-subtext focus:outline-none"
         />
         <div className="flex items-center justify-between px-2 pb-2">
-          <button className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gcal-subtext hover:bg-[#edeae6]">
+          <button className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gcal-subtext hover:bg-[#EDE8FF]">
             <PlusIcon />
             Smart
             <SmallChevron />
@@ -298,12 +298,12 @@ function MessageBubble({ message }: { message: ChatMessageWithActions }) {
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[85%] space-y-2 rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-          isUser ? "bg-[#8fa8b8] text-white" : "bg-[#edeae6] text-gcal-text"
+          isUser ? "bg-[#7B57D2] text-white" : "bg-[#F0E8FF] text-gcal-text"
         }`}
       >
         <div className="whitespace-pre-wrap">{message.content}</div>
         {message.appliedNote && (
-          <div className="flex items-center gap-1.5 rounded-md bg-[#e2eedf] px-2 py-1 text-[11px] font-medium text-[#4a6a4a]">
+          <div className="flex items-center gap-1.5 rounded-md bg-[#D8F0DC] px-2 py-1 text-[11px] font-medium text-[#1A5C2A]">
             <CheckIcon />
             {message.appliedNote}
           </div>
