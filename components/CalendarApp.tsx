@@ -28,7 +28,23 @@ import ChatPanel from "@/components/ChatPanel";
 import EventModal from "@/components/EventModal";
 import { buildScheduleText } from "@/lib/schedule";
 import { composeLocalDate, type CalendarAction } from "@/lib/actions";
-import { buildHealthText, type HealthSummary } from "@/lib/health";
+import {
+  buildHealthText,
+  computeStateLevel,
+  type DetailedHealth,
+  type HealthSummary,
+} from "@/lib/health";
+import type { StateLevel } from "@/lib/types";
+import {
+  addBlueTask,
+  loadBlueTasks,
+  pendingTasks as getPendingTasks,
+  saveBlueTasks,
+} from "@/lib/blueTaskStore";
+import { scheduleTwoDays, type BlueTask } from "@/lib/scheduler";
+import { getTaskCategory } from "@/lib/taskCategory";
+import BlueTaskPanel from "@/components/BlueTaskPanel";
+import DailyBriefing from "@/components/DailyBriefing";
 
 function truncate(text: string, max: number) {
   if (!text) return "";
@@ -52,16 +68,29 @@ export default function CalendarApp() {
   const [chatOpen, setChatOpen] = useState(true);
   const [editing, setEditing] = useState<EditingState>(null);
   const [health, setHealth] = useState<HealthSummary | null>(null);
+  const [detailedHealth, setDetailedHealth] = useState<DetailedHealth | null>(null);
+  const [stateLevel, setStateLevel] = useState<StateLevel | null>(null);
+  const [blueTasks, setBlueTasks] = useState<BlueTask[]>([]);
+  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
+  const [schedulerNotes, setSchedulerNotes] = useState<string[]>([]);
+  const [deferredPurpleNames, setDeferredPurpleNames] = useState<string[]>([]);
 
   // Load per-user store from localStorage on mount / user change.
   useEffect(() => {
     setStore(loadStore(userKey));
+    setBlueTasks(loadBlueTasks(userKey));
   }, [userKey]);
 
   // Persist store to localStorage on change.
   useEffect(() => {
     saveStore(userKey, store);
   }, [userKey, store]);
+
+  // Persist blue tasks on change.
+  useEffect(() => {
+    saveBlueTasks(userKey, blueTasks);
+  }, [userKey, blueTasks]);
 
   const weekDays = useMemo(() => getWeekDays(anchorDate), [anchorDate]);
   const weekRange = useMemo(() => getWeekRange(anchorDate), [anchorDate]);
@@ -81,7 +110,10 @@ export default function CalendarApp() {
     [weekDays, events],
   );
 
-  const healthText = useMemo(() => buildHealthText(health), [health]);
+  const healthText = useMemo(
+    () => buildHealthText(health, detailedHealth, stateLevel),
+    [health, detailedHealth, stateLevel],
+  );
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -112,19 +144,43 @@ export default function CalendarApp() {
     fetchEvents();
   }, [fetchEvents]);
 
-  // Fetch Google Fit summary once per session. Failures just null out
-  // the state — the chat still works, Gemini just won't be health-aware.
+  // Fetch Google Fit data once per session.  We fire both requests in
+  // parallel; failures null out the relevant state so the app degrades
+  // gracefully — Gemini still works, just without health context.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/fit/summary");
-        if (!res.ok) {
-          if (!cancelled) setHealth({ available: false });
-          return;
+        const [summaryRes, detailRes] = await Promise.all([
+          fetch("/api/fit/summary"),
+          fetch("/api/fit/detail"),
+        ]);
+
+        const summaryData: HealthSummary = summaryRes.ok
+          ? await summaryRes.json()
+          : { available: false };
+
+        const detailData: DetailedHealth | null = detailRes.ok
+          ? await detailRes.json()
+          : null;
+
+        if (!cancelled) {
+          setHealth(summaryData);
+          setDetailedHealth(detailData);
+          const level = computeStateLevel(summaryData, detailData);
+          setStateLevel(level);
+          // Trigger initial scheduling after health data is available.
+          setTimeout(() => {
+            triggerReschedule();
+            // Show daily briefing once per day.
+            const todayKey = new Date().toISOString().slice(0, 10);
+            const briefingKey = `washu-event-briefing::${userKey}::${todayKey}`;
+            if (!localStorage.getItem(briefingKey)) {
+              setBriefingOpen(true);
+              localStorage.setItem(briefingKey, "1");
+            }
+          }, 100);
         }
-        const data = (await res.json()) as HealthSummary;
-        if (!cancelled) setHealth(data);
       } catch {
         if (!cancelled) setHealth({ available: false });
       }
@@ -229,6 +285,65 @@ export default function CalendarApp() {
     [],
   );
 
+  // Run the scheduling engine for today + tomorrow.
+  // Called after health data loads, after tasks are added, or on reschedule signal.
+  const triggerReschedule = useCallback(
+    (elapsedMinutes?: number) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Summaries of blue events already placed in the calendar (to avoid duplication).
+      const placedSummaries = new Set(
+        events
+          .filter((ev) => {
+            const cat = getTaskCategory(ev.colorId);
+            return cat === "blue" || isLocalId(ev.id);
+          })
+          .map((ev) => ev.summary),
+      );
+
+      const pending = getPendingTasks(blueTasks, today).filter(
+        (t) => !placedSummaries.has(t.summary),
+      );
+
+      const currentTime = elapsedMinutes
+        ? new Date(Date.now() + elapsedMinutes * 60000)
+        : new Date();
+
+      const result = scheduleTwoDays(
+        today,
+        events,
+        pending,
+        stateLevel ?? "normal",
+        currentTime,
+      );
+
+      if (result.actions.length > 0) {
+        handleApplyActions(result.actions);
+      }
+
+      // Store output for the daily briefing.
+      setSchedulerNotes(result.notes);
+      setDeferredPurpleNames(result.deferredPurple.map((e) => e.summary));
+      return result;
+    },
+    [events, blueTasks, stateLevel, handleApplyActions],
+  );
+
+  // Add a blue task and immediately trigger scheduling.
+  const handleAddBlueTask = useCallback(
+    (task: Omit<BlueTask, "id">) => {
+      setBlueTasks((prev) => {
+        const updated = addBlueTask(prev, task);
+        saveBlueTasks(userKey, updated);
+        return updated;
+      });
+      // Small delay so the state update settles before scheduling.
+      setTimeout(() => triggerReschedule(), 50);
+    },
+    [userKey, triggerReschedule],
+  );
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
       <TopBar
@@ -238,6 +353,7 @@ export default function CalendarApp() {
         onNext={goNext}
         onToggleChat={() => setChatOpen((v) => !v)}
         chatOpen={chatOpen}
+        onAddTask={() => setTaskPanelOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -268,12 +384,41 @@ export default function CalendarApp() {
               scheduleText={scheduleText}
               healthText={healthText}
               health={health}
+              stateLevel={stateLevel}
               onClose={() => setChatOpen(false)}
               onApplyActions={handleApplyActions}
+              onReschedule={triggerReschedule}
             />
           </aside>
         )}
       </div>
+
+      <DailyBriefing
+        open={briefingOpen}
+        onClose={() => setBriefingOpen(false)}
+        stateLevel={stateLevel}
+        health={health}
+        detailedHealth={detailedHealth}
+        events={events}
+        schedulerNotes={schedulerNotes}
+        deferredPurpleNames={deferredPurpleNames}
+        onAddNap={(start, end) => {
+          setStore((s) =>
+            addLocalEvent(s, {
+              summary: "Nap",
+              start: start.toISOString(),
+              end: end.toISOString(),
+            }).store,
+          );
+          setBriefingOpen(false);
+        }}
+      />
+
+      <BlueTaskPanel
+        open={taskPanelOpen}
+        onClose={() => setTaskPanelOpen(false)}
+        onAdd={handleAddBlueTask}
+      />
 
       <EventModal
         open={editing !== null}

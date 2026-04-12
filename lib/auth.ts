@@ -4,8 +4,9 @@ import GoogleProvider from "next-auth/providers/google";
 // Google OAuth scopes required:
 //  - openid / email / profile: standard sign-in
 //  - calendar.readonly: list events from the user's Google Calendar
-//  - fitness.sleep.read: last night's sleep for difficulty-aware scheduling
-//  - fitness.activity.read: yesterday's activity as a rough energy proxy
+//  - fitness.sleep.read: sleep duration + stages for state scoring
+//  - fitness.activity.read: steps + active minutes as energy proxy
+//  - fitness.heart_rate.read: resting HR + HRV for state scoring
 const GOOGLE_SCOPES = [
   "openid",
   "email",
@@ -13,6 +14,7 @@ const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/fitness.sleep.read",
   "https://www.googleapis.com/auth/fitness.activity.read",
+  "https://www.googleapis.com/auth/fitness.heart_rate.read",
 ].join(" ");
 
 async function refreshAccessToken(token: any) {

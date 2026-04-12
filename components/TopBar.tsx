@@ -9,6 +9,7 @@ type Props = {
   onNext: () => void;
   onToggleChat: () => void;
   chatOpen: boolean;
+  onAddTask: () => void;
 };
 
 export default function TopBar({
@@ -18,6 +19,7 @@ export default function TopBar({
   onNext,
   onToggleChat,
   chatOpen,
+  onAddTask,
 }: Props) {
   const { data: session } = useSession();
   const user = session?.user;
@@ -62,6 +64,14 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+          onClick={onAddTask}
+          className="flex items-center gap-1.5 rounded-full bg-gcal-blue px-3 py-1.5 text-sm text-white shadow-sm hover:bg-gcal-bluehover"
+          title="Add a task"
+        >
+          <PlusIcon />
+          <span className="hidden sm:inline">Add Task</span>
+        </button>
         <span className="hidden text-sm text-gcal-subtext md:inline">Week</span>
         <button
           onClick={onToggleChat}
@@ -123,6 +133,13 @@ function SparkleIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2l2.39 5.86L20 10l-5.61 2.14L12 18l-2.39-5.86L4 10l5.61-2.14z" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" />
     </svg>
   );
 }

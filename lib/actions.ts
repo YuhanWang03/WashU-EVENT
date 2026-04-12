@@ -33,6 +33,16 @@ export type CalendarAction =
       day: string;
       start: string;
       end: string;
+    }
+  | {
+      /**
+       * Signals the frontend to run scheduleTwoDays() for the remaining day.
+       * Gemini emits this when the user returns from an interruption and the
+       * remaining schedule needs a full re-optimisation.
+       */
+      type: "reschedule";
+      /** Minutes consumed by the interruption (used to advance currentTime). */
+      elapsedMinutes?: number;
     };
 
 const BLOCK_RE = /<calendar-actions>([\s\S]*?)<\/calendar-actions>/i;

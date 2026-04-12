@@ -2,6 +2,7 @@
 
 import { format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/types";
+import { categoryTag } from "@/lib/taskCategory";
 
 /**
  * Produce a markdown-ish, human-readable per-day schedule for the current
@@ -62,8 +63,9 @@ export function buildScheduleText(
     lines.push("  Events:");
     for (const ev of timed) {
       const loc = ev.location ? ` @ ${ev.location}` : "";
+      const cat = categoryTag(ev.colorId);
       lines.push(
-        `    - [id=${ev.id}] ${format(ev._s, "h:mm a")} – ${format(ev._e, "h:mm a")}: ${ev.summary}${loc}`,
+        `    - [id=${ev.id}]${cat} ${format(ev._s, "h:mm a")} – ${format(ev._e, "h:mm a")}: ${ev.summary}${loc}`,
       );
     }
 

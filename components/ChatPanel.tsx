@@ -8,6 +8,7 @@ import {
   type CalendarAction,
 } from "@/lib/actions";
 import { healthPillLabel, type HealthSummary } from "@/lib/health";
+import type { StateLevel } from "@/lib/types";
 
 type ChatMessageWithActions = ChatMessage & { appliedNote?: string };
 
@@ -17,8 +18,11 @@ type Props = {
   scheduleText: string;
   healthText?: string;
   health?: HealthSummary | null;
+  stateLevel?: StateLevel | null;
   onClose: () => void;
   onApplyActions?: (actions: CalendarAction[]) => number;
+  /** Called when Gemini emits a reschedule signal. */
+  onReschedule?: (elapsedMinutes?: number) => void;
 };
 
 export default function ChatPanel({
@@ -27,8 +31,10 @@ export default function ChatPanel({
   scheduleText,
   healthText,
   health,
+  stateLevel,
   onClose,
   onApplyActions,
+  onReschedule,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessageWithActions[]>([]);
   const [input, setInput] = useState("");
@@ -76,6 +82,7 @@ export default function ChatPanel({
           viewLabel,
           scheduleText,
           healthText,
+          currentTime: new Date().toISOString(),
         }),
       });
 
@@ -95,10 +102,22 @@ export default function ChatPanel({
       // Pull out any <calendar-actions> block, apply them, and show a
       // cleaned reply (without the raw JSON) plus an "Applied: ..." note.
       const { cleaned, actions } = parseActionBlock(data.reply ?? "");
+
+      // Separate the special reschedule signal from regular calendar actions.
+      const rescheduleAction = actions.find((a) => a.type === "reschedule") as
+        | { type: "reschedule"; elapsedMinutes?: number }
+        | undefined;
+      const calendarActions = actions.filter((a) => a.type !== "reschedule");
+
       let appliedNote: string | undefined;
-      if (actions.length > 0 && onApplyActions) {
-        const n = onApplyActions(actions);
-        if (n > 0) appliedNote = summarizeActions(actions.slice(0, n));
+      if (calendarActions.length > 0 && onApplyActions) {
+        const n = onApplyActions(calendarActions);
+        if (n > 0) appliedNote = summarizeActions(calendarActions.slice(0, n));
+      }
+
+      // Trigger full re-optimisation if Gemini requested it.
+      if (rescheduleAction && onReschedule) {
+        onReschedule(rescheduleAction.elapsedMinutes);
       }
       setMessages((prev) => [
         ...prev,
@@ -117,12 +136,14 @@ export default function ChatPanel({
   };
 
   const suggestions = [
-    "Rearrange this week by difficulty and my sleep",
-    "Move my hardest tasks to tomorrow morning",
-    "Find a 30 minute free slot this week",
+    "Optimize today based on my health",
+    "吃饭",
+    "回家",
+    "我回来了",
+    "Find a free slot this week",
   ];
 
-  const healthPill = healthPillLabel(health ?? null);
+  const healthPill = healthPillLabel(health ?? null, stateLevel);
 
   return (
     <div className="flex h-full flex-col">
@@ -216,10 +237,20 @@ export default function ChatPanel({
       </div>
 
       {healthPill && (
-        <div className="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-gcal-border bg-white px-3 py-2 text-xs text-gcal-text shadow-sm">
+        <div
+          className={`mx-4 mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm ${
+            stateLevel === "peak"
+              ? "border-blue-200 bg-blue-50 text-blue-800"
+              : stateLevel === "good"
+                ? "border-green-200 bg-green-50 text-green-800"
+                : stateLevel === "low"
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-gcal-border bg-white text-gcal-text"
+          }`}
+        >
           <HeartIcon />
-          <div className="flex-1 truncate">Google Fit</div>
-          <span className="text-[11px] text-gcal-subtext">{healthPill}</span>
+          <div className="flex-1 truncate">Health</div>
+          <span className="text-[11px] font-medium">{healthPill}</span>
         </div>
       )}
 

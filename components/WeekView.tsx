@@ -11,6 +11,7 @@ import { addMinutes, format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/types";
 import { isLocalId, isModified, type LocalOverride, type LocalStore } from "@/lib/localStore";
 import { formatDayNumber, formatDayShort, formatHourLabel } from "@/lib/dates";
+import { getTaskCategory, CATEGORY_STYLE } from "@/lib/taskCategory";
 
 type Props = {
   days: Date[];
@@ -350,16 +351,19 @@ export default function WeekView({
               key={key}
               className="min-h-[24px] border-r border-gcal-border px-1 py-0.5"
             >
-              {items.slice(0, 3).map((ev) => (
-                <div
-                  key={ev.id}
-                  title={ev.summary}
-                  onClick={() => onOpenEvent(ev)}
-                  className="mb-0.5 cursor-pointer truncate rounded bg-blue-100 px-1 text-[11px] text-blue-800 hover:bg-blue-200"
-                >
-                  {ev.summary}
-                </div>
-              ))}
+              {items.slice(0, 3).map((ev) => {
+                const style = CATEGORY_STYLE[getTaskCategory(ev.colorId)];
+                return (
+                  <div
+                    key={ev.id}
+                    title={ev.summary}
+                    onClick={() => onOpenEvent(ev)}
+                    className={`mb-0.5 cursor-pointer truncate rounded px-1 text-[11px] hover:opacity-80 ${style.chipBg} ${style.chipText}`}
+                  >
+                    {ev.summary}
+                  </div>
+                );
+              })}
               {items.length > 3 && (
                 <div className="text-[10px] text-gcal-subtext">
                   +{items.length - 3} more
@@ -557,14 +561,15 @@ function EventBlock({
 }: EventBlockProps) {
   const widthPct = 100 / colCount;
   const leftPct = col * widthPct;
+  const style = CATEGORY_STYLE[getTaskCategory(ev.colorId)];
 
   return (
     <div
       data-event-block
       onPointerDown={onPointerDown}
       onClick={onClick}
-      className={`absolute cursor-grab overflow-hidden rounded-md bg-gcal-blue px-1.5 py-1 text-[11px] text-white shadow-sm hover:opacity-95 active:cursor-grabbing ${
-        isDragging ? "opacity-80 ring-2 ring-blue-300" : ""
+      className={`absolute cursor-grab overflow-hidden rounded-md px-1.5 py-1 text-[11px] shadow-sm hover:opacity-95 active:cursor-grabbing ${style.blockBg} ${style.blockText} ${
+        isDragging ? `opacity-80 ring-2 ${style.dragRing}` : ""
       }`}
       style={{
         top: `${topPct}%`,
