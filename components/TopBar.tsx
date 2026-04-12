@@ -34,8 +34,8 @@ export default function TopBar({
           <MenuIcon />
         </button>
         <div className="flex items-center gap-2">
-          <CalendarMark />
-          <span className="text-xl text-gcal-text">Calendar</span>
+          <CadenceLogo size={32} />
+          <span className="text-xl font-semibold text-gcal-text">Cadence</span>
         </div>
       </div>
 
@@ -143,11 +143,22 @@ function PlusIcon() {
     </svg>
   );
 }
-function CalendarMark() {
-  const day = new Date().getDate();
+function CadenceLogo({ size = 32 }: { size?: number }) {
   return (
-    <div className="relative flex h-8 w-8 items-center justify-center rounded-md bg-white shadow-sm ring-1 ring-gcal-border">
-      <span className="text-[11px] font-semibold text-gcal-blue">{day}</span>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="7" fill="#1a73e8" />
+      {/* Stylised "C" arc */}
+      <path
+        d="M22 9C19.5 7.4 16 7.4 13.5 9C11 10.6 9.5 13.2 9.5 16C9.5 18.8 11 21.4 13.5 23C16 24.6 19.5 24.6 22 23"
+        stroke="white"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Rhythm / cadence dots */}
+      <circle cx="24.5" cy="12" r="1.6" fill="white" />
+      <circle cx="24.5" cy="16" r="1.6" fill="white" />
+      <circle cx="24.5" cy="20" r="1.6" fill="white" />
+    </svg>
   );
 }
