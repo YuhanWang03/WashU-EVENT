@@ -25,8 +25,8 @@ import type { CalendarAction } from "@/lib/actions";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const DAY_START_HOUR = 8;   // 08:00 schedulable window start
-const DAY_END_HOUR   = 22;  // 22:00 schedulable window end
+const DAY_START_HOUR = 6;   // 06:00 wake up — schedulable window start
+const DAY_END_HOUR   = 24;  // 00:00 (midnight) sleep — schedulable window end
 
 /** Maximum single-block duration for blue/purple tasks (minutes). */
 const MAX_BLOCK_MIN = 90;
@@ -327,24 +327,24 @@ function preferredWindow(
   difficulty: TaskDifficulty,
   stateLevel: StateLevel,
 ): { earliest: number; latest: number } {
-  // Peak / Good: hard work in the morning, easy in the afternoon.
+  // Peak / Good: hard work in the morning, easy in the afternoon/evening.
   if (stateLevel === "peak") {
-    if (difficulty >= 3) return { earliest: 8,  latest: 12 };
+    if (difficulty >= 3) return { earliest: 6,  latest: 12 };
     if (difficulty === 2) return { earliest: 13, latest: 17 };
-    return                       { earliest: 14, latest: 20 };
+    return                       { earliest: 14, latest: 23 };
   }
   if (stateLevel === "good") {
-    if (difficulty >= 3) return { earliest: 9,  latest: 12 };
+    if (difficulty >= 3) return { earliest: 7,  latest: 12 };
     if (difficulty === 2) return { earliest: 13, latest: 17 };
-    return                       { earliest: 14, latest: 20 };
+    return                       { earliest: 14, latest: 23 };
   }
-  // Normal / Low: only easy-medium tasks; avoid very early morning.
+  // Normal / Low: avoid very early morning.
   if (stateLevel === "normal") {
-    if (difficulty >= 3) return { earliest: 10, latest: 13 };
-    return                       { earliest: 10, latest: 20 };
+    if (difficulty >= 3) return { earliest: 9, latest: 13 };
+    return                       { earliest: 9, latest: 22 };
   }
   // Low: everything pushed later; minimise cognitive load.
-  return { earliest: 11, latest: 20 };
+  return { earliest: 10, latest: 22 };
 }
 
 // ── Main scheduling function ─────────────────────────────────────────────────
