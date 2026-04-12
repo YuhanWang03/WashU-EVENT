@@ -129,3 +129,4 @@ lib/
 - Calendar events are fetched on demand from the browser and passed to
   the Gemini endpoint as context; nothing is persisted server-side.
 - Revoke access any time at <https://myaccount.google.com/permissions>.
+
