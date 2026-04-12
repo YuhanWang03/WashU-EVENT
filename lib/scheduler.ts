@@ -9,7 +9,8 @@
  *  3. Prioritise blue tasks by deadline urgency × difficulty × state fit.
  *  4. Place tasks greedily, splitting blocks > MAX_BLOCK_MIN and inserting
  *     invisible breaks between every task.
- *  5. Evaluate whether purple (exercise) tasks should be kept or deferred.
+ *  5. Evaluate today's purple (exercise) tasks: keep at scheduled time or cancel.
+ *     Purple tasks are same-day only — they are never moved to another day.
  *
  * Output is a CalendarAction[] that CalendarApp applies through the same
  * handleApplyActions path used by Gemini — no separate code path needed.
@@ -19,6 +20,7 @@ import { addMinutes, format, isSameDay, differenceInCalendarDays } from "date-fn
 import type { CalendarEvent } from "@/lib/types";
 import type { StateLevel } from "@/lib/types";
 import { getTaskCategory } from "@/lib/taskCategory";
+import { isLocalId } from "@/lib/localStore";
 import type { CalendarAction } from "@/lib/actions";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -365,7 +367,7 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
     return s && isSameDay(s, targetDate);
   });
 
-  // ── 1. Build occupied intervals (red + green + invisible buffers) ────────
+  // ── 1. Build occupied intervals (red + green + already-placed blue/local) ──
 
   const occupied: Interval[] = [];
 
@@ -385,24 +387,44 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
       });
     } else if (cat === "green") {
       occupied.push({ start: s, end: e });
+    } else if (cat === "blue" || isLocalId(ev.id)) {
+      // Already-placed blue tasks and locally-created events block their slots
+      // so the scheduler never double-books or overlaps with them.
+      occupied.push({ start: s, end: e });
     }
-    // Purple and blue events already placed are added below after evaluation.
+    // Purple events are handled in step 2.
   }
 
   // ── 2. Evaluate purple tasks ────────────────────────────────────────────
+  //
+  // Purple tasks are same-day only: they happen at their scheduled time today
+  // or get cancelled.  They are never moved to another day.
+  // For future days we simply block their slot and leave them untouched.
 
-  // Gather tomorrow's red tasks for the purple evaluation.
+  const isToday = isSameDay(targetDate, new Date());
+
+  // Gather tomorrow's red tasks (only needed for today's purple evaluation).
   const tomorrow = addMinutes(targetDate, 24 * 60);
-  const redTomorrow = events.filter((ev) => {
-    const s = toDate(ev.start);
-    return s && isSameDay(s, tomorrow) && getTaskCategory(ev.colorId) === "red";
-  });
+  const redTomorrow = isToday
+    ? events.filter((ev) => {
+        const s = toDate(ev.start);
+        return (
+          s && isSameDay(s, tomorrow) && getTaskCategory(ev.colorId) === "red"
+        );
+      })
+    : [];
 
   for (const ev of todayEvents) {
     if (getTaskCategory(ev.colorId) !== "purple") continue;
     const s = toDate(ev.start);
     const e = toDate(ev.end);
     if (!s || !e) continue;
+
+    if (!isToday) {
+      // Future purple events are never deferred — keep at their scheduled time.
+      occupied.push({ start: s, end: e });
+      continue;
+    }
 
     const { decision, reason } = evaluatePurpleTask(ev, stateLevel, redTomorrow);
     notes.push(reason);
