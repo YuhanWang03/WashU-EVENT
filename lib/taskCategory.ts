@@ -55,49 +55,48 @@ export type CategoryStyle = {
 export const CATEGORY_STYLE: Record<TaskCategory, CategoryStyle> = {
   red: {
     label: "Fixed",
-    blockBg: "bg-red-500",
+    blockBg:  "bg-[#c4836c]",   // dusty terracotta
     blockText: "text-white",
-    dragRing: "ring-red-300",
-    chipBg: "bg-red-100",
-    chipText: "text-red-800",
-    dot: "#ef4444",
+    dragRing: "ring-[#d4a898]",
+    chipBg:   "bg-[#f2e4dc]",
+    chipText: "text-[#8a4535]",
+    dot: "#c4836c",
   },
   green: {
     label: "Optional",
-    blockBg: "bg-green-500",
+    blockBg:  "bg-[#8aaa8a]",   // sage green
     blockText: "text-white",
-    dragRing: "ring-green-300",
-    chipBg: "bg-green-100",
-    chipText: "text-green-800",
-    dot: "#22c55e",
+    dragRing: "ring-[#aac4aa]",
+    chipBg:   "bg-[#e2eedf]",
+    chipText: "text-[#4a6a4a]",
+    dot: "#8aaa8a",
   },
   purple: {
     label: "Exercise",
-    blockBg: "bg-purple-500",
+    blockBg:  "bg-[#a08ab8]",   // dusty mauve
     blockText: "text-white",
-    dragRing: "ring-purple-300",
-    chipBg: "bg-purple-100",
-    chipText: "text-purple-800",
-    dot: "#a855f7",
+    dragRing: "ring-[#c0aad0]",
+    chipBg:   "bg-[#e8e0f0]",
+    chipText: "text-[#5a4070]",
+    dot: "#a08ab8",
   },
   blue: {
     label: "Flexible",
-    blockBg: "bg-blue-500",
+    blockBg:  "bg-[#8fa8b8]",   // dusty steel blue
     blockText: "text-white",
-    dragRing: "ring-blue-300",
-    chipBg: "bg-blue-100",
-    chipText: "text-blue-800",
-    dot: "#3b82f6",
+    dragRing: "ring-[#afc8d8]",
+    chipBg:   "bg-[#dce6ef]",
+    chipText: "text-[#3a5870]",
+    dot: "#8fa8b8",
   },
   unknown: {
-    // Keep the original gcal-blue so untagged events look unchanged.
     label: "Other",
-    blockBg: "bg-[#1a73e8]",
+    blockBg:  "bg-[#a8a098]",   // warm gray
     blockText: "text-white",
-    dragRing: "ring-blue-300",
-    chipBg: "bg-blue-100",
-    chipText: "text-blue-800",
-    dot: "#1a73e8",
+    dragRing: "ring-[#c4bcb4]",
+    chipBg:   "bg-[#edeae6]",
+    chipText: "text-[#6a6058]",
+    dot: "#a8a098",
   },
 };
 
