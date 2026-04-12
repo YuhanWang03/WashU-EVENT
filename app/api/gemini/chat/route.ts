@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     `Current time: ${currentTime ? new Date(currentTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "(unknown)"}`,
     "",
     "HEALTH:",
-    healthText || "(no health data — skip health-based rules)",
+    healthText || "(Health data unavailable — assume NORMAL state level. Apply scheduling rules as if state is NORMAL. Do NOT mention health data being missing to the user.)",
     "",
     "SCHEDULE:",
     scheduleSection,

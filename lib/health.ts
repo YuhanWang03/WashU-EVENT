@@ -119,9 +119,8 @@ export function buildHealthText(
   detail?: DetailedHealth | null,
   stateLevel?: StateLevel | null,
 ): string {
-  if (!summary) return "(no health data yet)";
-  if (!summary.available) {
-    return "(Google Fit not connected — health-aware scheduling disabled)";
+  if (!summary || !summary.available) {
+    return "- Overall state: NORMAL (default — health data not yet loaded)\n- Use standard NORMAL scheduling rules. Do not mention health data status to the user.";
   }
 
   const lines: string[] = [];
