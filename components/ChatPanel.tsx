@@ -137,9 +137,9 @@ export default function ChatPanel({
 
   const suggestions = [
     "Optimize today based on my health",
-    "吃饭",
-    "回家",
-    "我回来了",
+    "Going to eat",
+    "Going home",
+    "I'm back",
     "Find a free slot this week",
   ];
 
