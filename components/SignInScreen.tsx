@@ -4,8 +4,8 @@ import { signIn } from "next-auth/react";
 
 export default function SignInScreen() {
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="w-full max-w-md rounded-2xl border border-gcal-border bg-white p-10 shadow-sm">
+    <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-[#ede8e0] via-[#f7f3ef] to-[#e8e4ee]">
+      <div className="w-full max-w-md rounded-2xl border border-gcal-border bg-gcal-panel p-10 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
           <CadenceLogo size={44} />
           <div>
@@ -24,7 +24,7 @@ export default function SignInScreen() {
 
         <button
           onClick={() => signIn("google")}
-          className="flex w-full items-center justify-center gap-3 rounded-full border border-gcal-border bg-white px-4 py-3 text-sm font-medium text-gcal-text transition hover:bg-gray-50"
+          className="flex w-full items-center justify-center gap-3 rounded-full border border-gcal-border bg-gcal-panel px-4 py-3 text-sm font-medium text-gcal-text transition hover:bg-[#edeae6]"
         >
           <GoogleIcon />
           Sign in with Google
@@ -43,7 +43,7 @@ export default function SignInScreen() {
 function CadenceLogo({ size = 44 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <rect width="32" height="32" rx="7" fill="#1a73e8" />
+      <rect width="32" height="32" rx="7" fill="#8fa8b8" />
       <path
         d="M22 9C19.5 7.4 16 7.4 13.5 9C11 10.6 9.5 13.2 9.5 16C9.5 18.8 11 21.4 13.5 23C16 24.6 19.5 24.6 22 23"
         stroke="white"

@@ -195,7 +195,7 @@ export default function ChatPanel({
               <button
                 key={s}
                 onClick={() => send(s)}
-                className="block w-full rounded-xl border border-gcal-border bg-orange-50 px-3 py-2 text-left text-sm text-gcal-text transition hover:bg-orange-100"
+                className="block w-full rounded-xl border border-gcal-border bg-[#f5ede6] px-3 py-2 text-left text-sm text-gcal-text transition hover:bg-[#ede6de]"
               >
                 {s}
               </button>
@@ -214,14 +214,14 @@ export default function ChatPanel({
         )}
 
         {error && (
-          <div className="flex items-start justify-between gap-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="flex items-start justify-between gap-2 rounded bg-[#f2e4dc] px-3 py-2 text-xs text-[#8a4535]">
             <span className="flex-1 whitespace-pre-wrap break-words">
               {error}
             </span>
             {lastPrompt && (
               <button
                 onClick={retry}
-                className="shrink-0 rounded-full border border-red-300 px-2 py-0.5 text-[11px] font-medium text-red-700 hover:bg-red-100"
+                className="shrink-0 rounded-full border border-[#d4a898] px-2 py-0.5 text-[11px] font-medium text-[#8a4535] hover:bg-[#e8d4cc]"
               >
                 Retry
               </button>
@@ -231,7 +231,7 @@ export default function ChatPanel({
       </div>
 
       {/* Context pill */}
-      <div className="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-gcal-border bg-white px-3 py-2 text-xs text-gcal-text shadow-sm">
+      <div className="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-gcal-border bg-gcal-panel px-3 py-2 text-xs text-gcal-text shadow-sm">
         <CalendarPillIcon />
         <div className="flex-1 truncate">
           {viewLabel || "Google Calendar"}
@@ -243,12 +243,12 @@ export default function ChatPanel({
         <div
           className={`mx-4 mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm ${
             stateLevel === "peak"
-              ? "border-blue-200 bg-blue-50 text-blue-800"
+              ? "border-[#afc8d8] bg-[#dce6ef] text-[#3a5870]"
               : stateLevel === "good"
-                ? "border-green-200 bg-green-50 text-green-800"
+                ? "border-[#aac4aa] bg-[#e2eedf] text-[#4a6a4a]"
                 : stateLevel === "low"
-                  ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-gcal-border bg-white text-gcal-text"
+                  ? "border-[#d4a898] bg-[#f2e4dc] text-[#8a4535]"
+                  : "border-gcal-border bg-gcal-panel text-gcal-text"
           }`}
         >
           <HeartIcon />
@@ -258,7 +258,7 @@ export default function ChatPanel({
       )}
 
       {/* Composer */}
-      <div className="mx-3 mb-3 rounded-2xl border border-gcal-border bg-white shadow-sm">
+      <div className="mx-3 mb-3 rounded-2xl border border-gcal-border bg-gcal-panel shadow-sm">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -273,7 +273,7 @@ export default function ChatPanel({
           className="max-h-32 w-full resize-none rounded-2xl bg-transparent px-4 pt-3 text-sm text-gcal-text placeholder:text-gcal-subtext focus:outline-none"
         />
         <div className="flex items-center justify-between px-2 pb-2">
-          <button className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gcal-subtext hover:bg-gray-100">
+          <button className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gcal-subtext hover:bg-[#edeae6]">
             <PlusIcon />
             Smart
             <SmallChevron />
@@ -298,12 +298,12 @@ function MessageBubble({ message }: { message: ChatMessageWithActions }) {
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[85%] space-y-2 rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-          isUser ? "bg-blue-600 text-white" : "bg-gray-100 text-gcal-text"
+          isUser ? "bg-[#8fa8b8] text-white" : "bg-[#edeae6] text-gcal-text"
         }`}
       >
         <div className="whitespace-pre-wrap">{message.content}</div>
         {message.appliedNote && (
-          <div className="flex items-center gap-1.5 rounded-md bg-green-100 px-2 py-1 text-[11px] font-medium text-green-800">
+          <div className="flex items-center gap-1.5 rounded-md bg-[#e2eedf] px-2 py-1 text-[11px] font-medium text-[#4a6a4a]">
             <CheckIcon />
             {message.appliedNote}
           </div>

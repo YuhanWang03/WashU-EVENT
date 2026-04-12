@@ -346,7 +346,7 @@ export default function CalendarApp() {
   );
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-gcal-bg">
       <TopBar
         monthLabel={formatMonthYear(anchorDate)}
         onToday={goToday}
