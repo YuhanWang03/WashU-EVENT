@@ -28,7 +28,7 @@ export default function TopBar({
     <header className="flex h-14 items-center justify-between border-b border-gcal-border px-4">
       <div className="flex items-center gap-3">
         <button
-          className="rounded p-2 text-gcal-subtext hover:bg-[#edeae6]"
+          className="rounded p-2 text-gcal-subtext hover:bg-[#EDE8FF]"
           aria-label="Menu"
         >
           <MenuIcon />
@@ -42,20 +42,20 @@ export default function TopBar({
       <div className="flex items-center gap-2">
         <button
           onClick={onToday}
-          className="rounded-full border border-gcal-border px-4 py-1.5 text-sm text-gcal-text hover:bg-[#edeae6]"
+          className="rounded-full border border-gcal-border px-4 py-1.5 text-sm text-gcal-text hover:bg-[#EDE8FF]"
         >
           Today
         </button>
         <button
           onClick={onPrev}
-          className="rounded-full p-2 text-gcal-subtext hover:bg-[#edeae6]"
+          className="rounded-full p-2 text-gcal-subtext hover:bg-[#EDE8FF]"
           aria-label="Previous week"
         >
           <ChevronLeft />
         </button>
         <button
           onClick={onNext}
-          className="rounded-full p-2 text-gcal-subtext hover:bg-[#edeae6]"
+          className="rounded-full p-2 text-gcal-subtext hover:bg-[#EDE8FF]"
           aria-label="Next week"
         >
           <ChevronRight />
@@ -78,7 +78,7 @@ export default function TopBar({
           className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition ${
             chatOpen
               ? "border-gcal-blue text-gcal-blue"
-              : "border-gcal-border text-gcal-text hover:bg-[#edeae6]"
+              : "border-gcal-border text-gcal-text hover:bg-[#EDE8FF]"
           }`}
           title={chatOpen ? "Hide Gemini chat" : "Show Gemini chat"}
         >
@@ -146,7 +146,13 @@ function PlusIcon() {
 function CadenceLogo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <rect width="32" height="32" rx="7" fill="#8fa8b8" />
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#7B57D2"/>
+          <stop offset="100%" stopColor="#D63484"/>
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="7" fill="url(#lg)" />
       {/* Stylised "C" arc */}
       <path
         d="M22 9C19.5 7.4 16 7.4 13.5 9C11 10.6 9.5 13.2 9.5 16C9.5 18.8 11 21.4 13.5 23C16 24.6 19.5 24.6 22 23"

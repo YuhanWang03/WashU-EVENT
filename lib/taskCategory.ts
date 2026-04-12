@@ -55,48 +55,48 @@ export type CategoryStyle = {
 export const CATEGORY_STYLE: Record<TaskCategory, CategoryStyle> = {
   red: {
     label: "Fixed",
-    blockBg:  "bg-[#c4836c]",   // dusty terracotta
+    blockBg:  "bg-[#C62B6B]",   // deep rose / berry
     blockText: "text-white",
-    dragRing: "ring-[#d4a898]",
-    chipBg:   "bg-[#f2e4dc]",
-    chipText: "text-[#8a4535]",
-    dot: "#c4836c",
+    dragRing: "ring-[#E87FAD]",
+    chipBg:   "bg-[#FFD9EE]",
+    chipText: "text-[#8B1A45]",
+    dot: "#C62B6B",
   },
   green: {
     label: "Optional",
-    blockBg:  "bg-[#8aaa8a]",   // sage green
+    blockBg:  "bg-[#4F8055]",   // forest green
     blockText: "text-white",
-    dragRing: "ring-[#aac4aa]",
-    chipBg:   "bg-[#e2eedf]",
-    chipText: "text-[#4a6a4a]",
-    dot: "#8aaa8a",
+    dragRing: "ring-[#8FC496]",
+    chipBg:   "bg-[#D8F0DC]",
+    chipText: "text-[#1A5C2A]",
+    dot: "#4F8055",
   },
   purple: {
     label: "Exercise",
-    blockBg:  "bg-[#a08ab8]",   // dusty mauve
+    blockBg:  "bg-[#7B57D2]",   // Material You purple
     blockText: "text-white",
-    dragRing: "ring-[#c0aad0]",
-    chipBg:   "bg-[#e8e0f0]",
-    chipText: "text-[#5a4070]",
-    dot: "#a08ab8",
+    dragRing: "ring-[#B39AE8]",
+    chipBg:   "bg-[#EDE7FF]",
+    chipText: "text-[#4A2FA0]",
+    dot: "#7B57D2",
   },
   blue: {
     label: "Flexible",
-    blockBg:  "bg-[#8fa8b8]",   // dusty steel blue
+    blockBg:  "bg-[#D63484]",   // hot pink accent
     blockText: "text-white",
-    dragRing: "ring-[#afc8d8]",
-    chipBg:   "bg-[#dce6ef]",
-    chipText: "text-[#3a5870]",
-    dot: "#8fa8b8",
+    dragRing: "ring-[#F0A0C8]",
+    chipBg:   "bg-[#FFE4F4]",
+    chipText: "text-[#8B1755]",
+    dot: "#D63484",
   },
   unknown: {
     label: "Other",
-    blockBg:  "bg-[#a8a098]",   // warm gray
+    blockBg:  "bg-[#6B5F7A]",   // muted purple-gray
     blockText: "text-white",
-    dragRing: "ring-[#c4bcb4]",
-    chipBg:   "bg-[#edeae6]",
-    chipText: "text-[#6a6058]",
-    dot: "#a8a098",
+    dragRing: "ring-[#B0A8BE]",
+    chipBg:   "bg-[#EDE8F5]",
+    chipText: "text-[#3A2C52]",
+    dot: "#6B5F7A",
   },
 };
 

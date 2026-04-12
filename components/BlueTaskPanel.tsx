@@ -19,10 +19,10 @@ const TASK_TYPES: { value: BlueTaskType; label: string; icon: string }[] = [
 ];
 
 const DIFFICULTIES: { value: TaskDifficulty; label: string; desc: string; color: string }[] = [
-  { value: 1, label: "Easy",      desc: "Light, passive",        color: "bg-[#e2eedf] text-[#4a6a4a] border-[#aac4aa]" },
-  { value: 2, label: "Medium",    desc: "Moderate focus",        color: "bg-[#f0eadc] text-[#7a6a40] border-[#d4c898]" },
-  { value: 3, label: "Hard",      desc: "High cognitive load",   color: "bg-[#f5ede6] text-[#8a6838] border-[#d4b898]" },
-  { value: 4, label: "Very Hard", desc: "Maximum concentration", color: "bg-[#f2e4dc] text-[#8a4535] border-[#d4a898]" },
+  { value: 1, label: "Easy",      desc: "Light, passive",        color: "bg-[#D8F0DC] text-[#1A5C2A] border-[#aac4aa]" },
+  { value: 2, label: "Medium",    desc: "Moderate focus",        color: "bg-[#EDE7FF] text-[#4A2FA0] border-[#B39AE8]" },
+  { value: 3, label: "Hard",      desc: "High cognitive load",   color: "bg-[#FFE4F4] text-[#8B1755] border-[#F0A0C8]" },
+  { value: 4, label: "Very Hard", desc: "Maximum concentration", color: "bg-[#FFD9EE] text-[#8B1A45] border-[#E87FAD]" },
 ];
 
 const empty = (): Omit<BlueTask, "id"> => ({
@@ -94,7 +94,7 @@ export default function BlueTaskPanel({ open, onClose, onAdd }: Props) {
           <h2 className="text-base font-semibold text-gcal-text">Add Task</h2>
           <button
             onClick={onClose}
-            className="rounded p-1 text-gcal-subtext hover:bg-[#edeae6]"
+            className="rounded p-1 text-gcal-subtext hover:bg-[#EDE8FF]"
             aria-label="Close"
           >
             <CloseIcon />
@@ -113,8 +113,8 @@ export default function BlueTaskPanel({ open, onClose, onAdd }: Props) {
                   onClick={() => setForm((f) => ({ ...f, type: t.value }))}
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
                     form.type === t.value
-                      ? "border-[#8fa8b8] bg-[#dce6ef] text-[#3a5870]"
-                      : "border-gcal-border text-gcal-text hover:bg-[#edeae6]"
+                      ? "border-[#B39AE8] bg-[#EDE7FF] text-[#4A2FA0]"
+                      : "border-gcal-border text-gcal-text hover:bg-[#EDE8FF]"
                   }`}
                 >
                   <span>{t.icon}</span>
@@ -184,7 +184,7 @@ export default function BlueTaskPanel({ open, onClose, onAdd }: Props) {
                   className={`rounded-lg border px-2 py-2 text-center transition ${
                     form.difficulty === d.value
                       ? d.color + " border-current"
-                      : "border-gcal-border text-gcal-subtext hover:bg-[#edeae6]"
+                      : "border-gcal-border text-gcal-subtext hover:bg-[#EDE8FF]"
                   }`}
                 >
                   <div className="text-xs font-semibold">{d.label}</div>
@@ -225,7 +225,7 @@ export default function BlueTaskPanel({ open, onClose, onAdd }: Props) {
 
           {/* Errors */}
           {errors.length > 0 && (
-            <div className="rounded-lg bg-[#f2e4dc] px-3 py-2 text-xs text-[#8a4535]">
+            <div className="rounded-lg bg-[#FFD9EE] px-3 py-2 text-xs text-[#8B1A45]">
               {errors.map((e) => <div key={e}>{e}</div>)}
             </div>
           )}
@@ -235,7 +235,7 @@ export default function BlueTaskPanel({ open, onClose, onAdd }: Props) {
         <div className="flex items-center justify-end gap-2 border-t border-gcal-border px-5 py-3">
           <button
             onClick={onClose}
-            className="rounded-full px-4 py-1.5 text-sm text-gcal-text hover:bg-[#edeae6]"
+            className="rounded-full px-4 py-1.5 text-sm text-gcal-text hover:bg-[#EDE8FF]"
           >
             Cancel
           </button>

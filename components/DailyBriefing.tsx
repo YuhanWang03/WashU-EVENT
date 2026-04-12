@@ -116,33 +116,33 @@ const STATE_CONFIG: Record<
   peak: {
     label: "PEAK",
     icon: "⚡",
-    bg: "bg-[#dce6ef]",
-    text: "text-[#3a5870]",
-    border: "border-[#afc8d8]",
+    bg: "bg-[#EDE7FF]",
+    text: "text-[#4A2FA0]",
+    border: "border-[#B39AE8]",
     tagline: "Excellent condition — tackle your hardest work first.",
   },
   good: {
     label: "GOOD",
     icon: "✓",
-    bg: "bg-[#e2eedf]",
-    text: "text-[#4a6a4a]",
+    bg: "bg-[#D8F0DC]",
+    text: "text-[#1A5C2A]",
     border: "border-[#aac4aa]",
     tagline: "Well-rested — hard tasks in the morning, easier ones after lunch.",
   },
   normal: {
     label: "NORMAL",
     icon: "~",
-    bg: "bg-[#f0eadc]",
-    text: "text-[#7a6a40]",
-    border: "border-[#d4c898]",
+    bg: "bg-[#F5EEFF]",
+    text: "text-[#49454F]",
+    border: "border-[#CAC4D0]",
     tagline: "Moderate energy — keep tasks manageable and take your breaks.",
   },
   low: {
     label: "LOW",
     icon: "↓",
-    bg: "bg-[#f2e4dc]",
-    text: "text-[#8a4535]",
-    border: "border-[#d4a898]",
+    bg: "bg-[#FFD9EE]",
+    text: "text-[#8B1A45]",
+    border: "border-[#E87FAD]",
     tagline: "Low energy today — protect your red tasks, rest when you can.",
   },
 };
@@ -333,15 +333,15 @@ export default function DailyBriefing({
 
           {/* Nap recommendation */}
           {nap && (
-            <section className="rounded-xl border border-[#d4c898] bg-[#f0eadc] px-4 py-3">
+            <section className="rounded-xl border border-[#B39AE8] bg-[#EDE7FF] px-4 py-3">
               <div className="flex items-start gap-2">
                 <span className="text-lg">😴</span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-[#7a6a40]">
+                  <p className="text-sm font-medium text-[#4A2FA0]">
                     Nap recommended:{" "}
                     {format(nap.start, "h:mm a")} – {format(nap.end, "h:mm a")} ({nap.durationMin} min)
                   </p>
-                  <p className="mt-0.5 text-xs text-[#9a8a58]">{nap.message}</p>
+                  <p className="mt-0.5 text-xs text-[#6B50C0]">{nap.message}</p>
                 </div>
               </div>
             </section>
@@ -356,7 +356,7 @@ export default function DailyBriefing({
               <ul className="space-y-1.5">
                 {tips.map((tip) => (
                   <li key={tip} className="flex items-start gap-2 text-sm text-gcal-text">
-                    <span className="mt-0.5 text-[#8fa8b8] flex-shrink-0">•</span>
+                    <span className="mt-0.5 text-[#7B57D2] flex-shrink-0">•</span>
                     {tip}
                   </li>
                 ))}
@@ -373,13 +373,13 @@ export default function DailyBriefing({
               <ul className="space-y-1.5">
                 {planNotes.map((note) => (
                   <li key={note} className="flex items-start gap-2 text-sm text-gcal-text">
-                    <span className="text-[#8aaa8a] flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-[#4F8055] flex-shrink-0 mt-0.5">✓</span>
                     {note}
                   </li>
                 ))}
                 {deferredPurpleNames.map((name) => (
                   <li key={name} className="flex items-start gap-2 text-sm text-gcal-text">
-                    <span className="text-[#a08ab8] flex-shrink-0 mt-0.5">↷</span>
+                    <span className="text-[#7B57D2] flex-shrink-0 mt-0.5">↷</span>
                     <span>
                       <strong>{name}</strong> deferred — not recommended given your current state.
                     </span>
@@ -391,12 +391,12 @@ export default function DailyBriefing({
 
           {/* Unplaced task warnings */}
           {warnings.length > 0 && (
-            <section className="rounded-xl border border-[#d4c898] bg-[#f5ede6] px-4 py-3">
-              <h3 className="text-xs font-semibold text-[#8a6838] mb-1">
+            <section className="rounded-xl border border-[#E87FAD] bg-[#FFD9EE] px-4 py-3">
+              <h3 className="text-xs font-semibold text-[#8B1A45] mb-1">
                 Scheduling Warnings
               </h3>
               {warnings.map((w) => (
-                <p key={w} className="text-xs text-[#8a6838]">{w}</p>
+                <p key={w} className="text-xs text-[#8B1A45]">{w}</p>
               ))}
             </section>
           )}
@@ -406,14 +406,14 @@ export default function DailyBriefing({
         <div className="border-t border-gcal-border px-5 py-3 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-full px-4 py-1.5 text-sm text-gcal-subtext hover:bg-[#edeae6]"
+            className="rounded-full px-4 py-1.5 text-sm text-gcal-subtext hover:bg-[#EDE8FF]"
           >
             Dismiss
           </button>
           {nap ? (
             <button
               onClick={() => onAddNap(nap.start, nap.end)}
-              className="rounded-full bg-[#c4a870] px-4 py-1.5 text-sm text-white hover:bg-[#b49860]"
+              className="rounded-full bg-[#7B57D2] px-4 py-1.5 text-sm text-white hover:bg-[#6A48C0]"
             >
               Accept &amp; Add Nap
             </button>

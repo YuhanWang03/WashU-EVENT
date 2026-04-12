@@ -469,8 +469,8 @@ function NowLine({ now }: { now: Date }) {
       style={{ top: `${top}%` }}
     >
       <div className="relative">
-        <span className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-[#c4836c]" />
-        <div className="h-px w-full bg-[#c4836c]" />
+        <span className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-[#C62B6B]" />
+        <div className="h-px w-full bg-[#C62B6B]" />
       </div>
     </div>
   );
