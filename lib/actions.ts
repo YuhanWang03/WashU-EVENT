@@ -118,6 +118,26 @@ export function composeLocalDate(
   return new Date(d.y, d.m - 1, d.d, hour, minute, 0, 0);
 }
 
+/**
+ * Drop any move/create actions that would place an event outside the
+ * allowed window (06:00 – 23:59). This is a safety net for when Gemini
+ * ignores the prompt constraints.
+ */
+export function sanitizeActions(actions: CalendarAction[]): CalendarAction[] {
+  return actions.filter((a) => {
+    if (a.type !== "move" && a.type !== "create") return true;
+    const start = composeLocalDate(
+      a.type === "move" ? a.day : a.day,
+      a.start,
+    );
+    const hour = start.getHours();
+    const minute = start.getMinutes();
+    const totalMin = hour * 60 + minute;
+    // Allow 06:00 (360 min) to 23:59 (1439 min).
+    return totalMin >= 360 && totalMin <= 1439;
+  });
+}
+
 export function summarizeActions(actions: CalendarAction[]): string {
   if (actions.length === 0) return "";
   const counts: Record<string, number> = {};
