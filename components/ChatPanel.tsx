@@ -57,7 +57,7 @@ export default function ChatPanel({
     setSending(true);
 
     try {
-      const res = await fetch("/api/gemini/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -83,9 +83,9 @@ export default function ChatPanel({
         const code = data?.error ?? `status ${res.status}`;
         const detail = data?.detail ? `: ${String(data.detail)}` : "";
         // Friendly message for the common overload case.
-        if (code === "gemini_overloaded") {
+        if (code === "llm_overloaded") {
           throw new Error(
-            "Gemini is temporarily overloaded. Tap Retry to try again.",
+            "The assistant is temporarily overloaded. Tap Retry to try again.",
           );
         }
         throw new Error(`${code}${detail}`.slice(0, 320));

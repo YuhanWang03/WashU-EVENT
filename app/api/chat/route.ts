@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -37,12 +37,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_gemini_api_key" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "missing_api_key" }, { status: 500 });
   }
 
   let body: {
@@ -69,7 +66,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "messages_required" }, { status: 400 });
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
   const scheduleSection = scheduleText
     ? scheduleText
     : `Events in view (no pre-computed schedule):\n${formatEventsForPrompt(events)}`;
@@ -95,12 +91,8 @@ export async function POST(req: NextRequest) {
     "",
     "═══ INVISIBLE SCHEDULING CONSTRAINTS ═══",
     "These are NOT shown in the calendar but MUST be respected when placing tasks:",
-    "  • Pre-red-task buffer (travel + preparation):",
-    "      Peak/Good state → 15 min before red task",
-    "      Normal state    → 20 min before red task  (also suggest: walk, water, breathe)",
-    "      Low state       → 30 min before red task  (also suggest actionable recovery: 'Go for a 10-min walk', 'Drink water and do 5 min deep breathing')",
-    "  • Break between non-red/green tasks:",
-    "      Peak → 5 min · Good → 10 min · Normal → 15 min · Low → 20 min",
+    "  • Pre-red-task buffer (travel + preparation): 15 min before every red task.",
+    "  • Break between non-red/green tasks: 10 min.",
     "  • Max single block for blue tasks: 90 min (60 min if deadline ≤2 days AND difficulty ≥ hard)",
     "  • When calculating free slots, subtract these invisible buffers and breaks from the available time.",
     "",
@@ -141,34 +133,36 @@ export async function POST(req: NextRequest) {
     scheduleSection,
   ].join("\n");
 
-  // Model names are overridable via env so we can swap without a code
-  // change if Google renames / deprecates models again.
-  const primaryModel = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
-  const fallbackModel =
-    process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.0-flash";
+  // Model is overridable via env so we can swap without a code change.
+  const model = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
 
-  // Build history: Gemini expects alternating user/model turns, with the
-  // last user message sent separately via sendMessage().
-  const historySource = messages.slice(0, -1);
-  const lastMessage = messages[messages.length - 1];
+  const client = new OpenAI({
+    apiKey,
+    baseURL: process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com",
+  });
 
-  const history = historySource
-    .filter((m) => m.role === "user" || m.role === "model")
-    .map((m) => ({ role: m.role, parts: [{ text: m.content }] }));
+  // OpenAI-compatible message list: system prompt + conversation history.
+  // Our internal "model" role maps to OpenAI's "assistant" role.
+  const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemInstruction },
+    ...messages
+      .filter((m) => m.role === "user" || m.role === "model")
+      .map((m) =>
+        m.role === "model"
+          ? ({ role: "assistant", content: m.content } as const)
+          : ({ role: "user", content: m.content } as const),
+      ),
+  ];
 
-  async function callOnce(modelName: string): Promise<string> {
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction,
+  async function callOnce(): Promise<string> {
+    const completion = await client.chat.completions.create({
+      model,
+      messages: chatMessages,
     });
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
-    return result.response.text();
+    return completion.choices[0]?.message?.content ?? "";
   }
 
-  // Retry transient errors (overload / rate limit / 5xx) with exponential
-  // backoff. If the primary is still unhappy after retries, try the
-  // fallback model once so the user still gets a response.
+  // Retry transient errors (overload / rate limit / 5xx) with exponential backoff.
   const TRANSIENT_PATTERNS = [
     /\b503\b/,
     /\b502\b/,
@@ -188,7 +182,7 @@ export async function POST(req: NextRequest) {
 
   for (let attempt = 0; attempt <= backoffsMs.length; attempt++) {
     try {
-      const text = await callOnce(primaryModel);
+      const text = await callOnce();
       return NextResponse.json({ reply: text });
     } catch (err: any) {
       lastError = err;
@@ -198,22 +192,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Primary exhausted — try the fallback model once.
-  try {
-    const text = await callOnce(fallbackModel);
-    return NextResponse.json({ reply: text, usedFallback: fallbackModel });
-  } catch (err: any) {
-    lastError = err;
-  }
-
   const detail = lastError?.message ?? String(lastError);
   const transient = isTransient(detail);
-  console.error("Gemini chat error", lastError);
+  console.error("Chat completion error", lastError);
   return NextResponse.json(
     {
-      error: transient ? "gemini_overloaded" : "gemini_failed",
+      error: transient ? "llm_overloaded" : "llm_failed",
       detail: transient
-        ? "Google's Gemini service is temporarily overloaded. Please try again in a few seconds."
+        ? "The assistant is temporarily overloaded. Please try again in a few seconds."
         : detail,
     },
     { status: transient ? 503 : 500 },
