@@ -5,7 +5,7 @@
  *
  * Responsibilities:
  *  1. Build an occupied timeline from red + green events (+ invisible buffers).
- *  2. Find free slots within the schedulable window (08:00 – 22:00).
+ *  2. Find free slots within the schedulable window (06:00 – 24:00).
  *  3. Prioritise blue tasks by deadline urgency × difficulty.
  *  4. Place tasks greedily, splitting blocks > MAX_BLOCK_MIN and inserting
  *     invisible breaks between every task.
@@ -86,7 +86,7 @@ export type SchedulerInput = {
   pendingTasks: BlueTask[];
   /**
    * If provided, slots before this time are skipped (mid-day rescheduling).
-   * Defaults to targetDate 08:00 when omitted.
+   * Defaults to targetDate 06:00 when omitted.
    */
   currentTime?: Date;
 };
@@ -265,7 +265,7 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
   const { targetDate, events, pendingTasks, currentTime } = input;
   const { start: dayStart, end: dayEnd } = dayBounds(targetDate);
 
-  // Effective window start: now (if mid-day) or 08:00.
+  // Effective window start: now (if mid-day) or 06:00.
   const windowStart =
     currentTime && currentTime > dayStart ? currentTime : dayStart;
 

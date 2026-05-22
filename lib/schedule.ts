@@ -15,8 +15,8 @@ import { categoryTag } from "@/lib/taskCategory";
  * in UTC on Vercel and would otherwise need an IANA timezone round-trip.
  */
 
-const DAY_START_HOUR = 8; // 8 AM — "schedulable window" start
-const DAY_END_HOUR = 22; // 10 PM — "schedulable window" end
+const DAY_START_HOUR = 6; // 6 AM — "schedulable window" start
+const DAY_END_HOUR = 24; // 12 AM (midnight) — "schedulable window" end
 
 type Timed = CalendarEvent & { _s: Date; _e: Date };
 
@@ -84,7 +84,7 @@ export function buildScheduleText(
 
     if (freeRanges.length === 0) {
       lines.push(
-        "  Free slots (8 AM – 10 PM window): none — the day is fully booked in the schedulable window",
+        "  Free slots (6 AM – 12 AM window): none — the day is fully booked in the schedulable window",
       );
     } else {
       lines.push("  Free slots (any blank time is available to schedule):");
