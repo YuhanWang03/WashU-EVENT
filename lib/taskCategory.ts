@@ -1,5 +1,5 @@
 /**
- * Maps Google Calendar colorId to the four task categories.
+ * Maps Google Calendar colorId to the three task categories.
  *
  * colorId  Name        Hex        → Category
  * ───────  ──────────  ─────────  ─────────────────────────────────────────
@@ -9,13 +9,12 @@
  *  "4"     Flamingo    #e67c73    red
  *  "2"     Sage        #33b679    green  — Optional fixed-time
  *  "9"     Basil       #0f9d58    green
- *  "3"     Grape       #8e24aa    purple — Fitness & medium-high exercise
  *  "7"     Peacock     #039be5    blue   — Freely scheduled tasks
  *  "8"     Blueberry   #3f51b5    blue
  *  "1"     Lavender    #7986cb    blue
  */
 
-export type TaskCategory = "red" | "green" | "purple" | "blue" | "unknown";
+export type TaskCategory = "red" | "green" | "blue" | "unknown";
 
 const COLOR_ID_MAP: Record<string, TaskCategory> = {
   "11": "red",
@@ -24,7 +23,6 @@ const COLOR_ID_MAP: Record<string, TaskCategory> = {
   "4":  "red",
   "2":  "green",
   "9":  "green",
-  "3":  "purple",
   "1":  "blue",
   "7":  "blue",
   "8":  "blue",
@@ -70,15 +68,6 @@ export const CATEGORY_STYLE: Record<TaskCategory, CategoryStyle> = {
     chipBg:   "bg-[#D8F0DC]",
     chipText: "text-[#1A5C2A]",
     dot: "#4F8055",
-  },
-  purple: {
-    label: "Exercise",
-    blockBg:  "bg-[#7B57D2]",   // Material You purple
-    blockText: "text-white",
-    dragRing: "ring-[#B39AE8]",
-    chipBg:   "bg-[#EDE7FF]",
-    chipText: "text-[#4A2FA0]",
-    dot: "#7B57D2",
   },
   blue: {
     label: "Flexible",

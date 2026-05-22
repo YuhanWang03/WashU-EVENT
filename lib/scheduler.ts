@@ -9,8 +9,6 @@
  *  3. Prioritise blue tasks by deadline urgency × difficulty × state fit.
  *  4. Place tasks greedily, splitting blocks > MAX_BLOCK_MIN and inserting
  *     invisible breaks between every task.
- *  5. Evaluate today's purple (exercise) tasks: keep at scheduled time or cancel.
- *     Purple tasks are same-day only — they are never moved to another day.
  *
  * Output is a CalendarAction[] that CalendarApp applies through the same
  * handleApplyActions path used by Gemini — no separate code path needed.
@@ -28,7 +26,7 @@ import type { CalendarAction } from "@/lib/actions";
 const DAY_START_HOUR = 6;   // 06:00 wake up — schedulable window start
 const DAY_END_HOUR   = 24;  // 00:00 (midnight) sleep — schedulable window end
 
-/** Maximum single-block duration for blue/purple tasks (minutes). */
+/** Maximum single-block duration for blue tasks (minutes). */
 const MAX_BLOCK_MIN = 90;
 
 /** Reduced max block when deadline is near + task is hard (minutes). */
@@ -109,8 +107,6 @@ export type SchedulerOutput = {
   actions: CalendarAction[];
   /** Human-readable notes about decisions made (shown in chat). */
   notes: string[];
-  /** Purple tasks the scheduler recommends skipping. */
-  deferredPurple: CalendarEvent[];
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -272,51 +268,6 @@ function splitIntoBlocks(task: BlueTask, targetDate: Date): number[] {
   return blocks;
 }
 
-// ── Purple task evaluation ───────────────────────────────────────────────────
-
-/**
- * Decide whether a purple (exercise) event should be kept today.
- *
- * Returns "keep" | "defer" and a brief reason.
- */
-export function evaluatePurpleTask(
-  event: CalendarEvent,
-  stateLevel: StateLevel,
-  redTasksTomorrow: CalendarEvent[],
-): { decision: "keep" | "defer"; reason: string } {
-  if (stateLevel === "low") {
-    return {
-      decision: "defer",
-      reason: `State is LOW — skipping "${event.summary}" to preserve energy.`,
-    };
-  }
-
-  // Check for early-morning red tasks tomorrow (before 10:00).
-  const earlyRedTomorrow = redTasksTomorrow.some((ev) => {
-    const s = toDate(ev.start);
-    return s && s.getHours() < 10;
-  });
-
-  if (stateLevel === "normal" && earlyRedTomorrow) {
-    return {
-      decision: "defer",
-      reason: `State is NORMAL and there's an early red task tomorrow — skipping "${event.summary}".`,
-    };
-  }
-
-  if (stateLevel === "good" && earlyRedTomorrow) {
-    return {
-      decision: "keep",
-      reason: `State is GOOD — keeping "${event.summary}" but finish before 21:00 to allow rest.`,
-    };
-  }
-
-  return {
-    decision: "keep",
-    reason: `State is ${stateLevel.toUpperCase()} — "${event.summary}" is good to go.`,
-  };
-}
-
 // ── Preferred time windows by difficulty + state ─────────────────────────────
 
 /**
@@ -359,7 +310,6 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
 
   const actions: CalendarAction[] = [];
   const notes: string[] = [];
-  const deferredPurple: CalendarEvent[] = [];
 
   // Filter to events that fall on targetDate.
   const todayEvents = events.filter((ev) => {
@@ -392,59 +342,12 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
       // so the scheduler never double-books or overlaps with them.
       occupied.push({ start: s, end: e });
     }
-    // Purple events are handled in step 2.
   }
 
-  // ── 2. Evaluate purple tasks ────────────────────────────────────────────
-  //
-  // Purple tasks are same-day only: they happen at their scheduled time today
-  // or get cancelled.  They are never moved to another day.
-  // For future days we simply block their slot and leave them untouched.
-
-  const isToday = isSameDay(targetDate, new Date());
-
-  // Gather tomorrow's red tasks (only needed for today's purple evaluation).
-  const tomorrow = addMinutes(targetDate, 24 * 60);
-  const redTomorrow = isToday
-    ? events.filter((ev) => {
-        const s = toDate(ev.start);
-        return (
-          s && isSameDay(s, tomorrow) && getTaskCategory(ev.colorId) === "red"
-        );
-      })
-    : [];
-
-  for (const ev of todayEvents) {
-    if (getTaskCategory(ev.colorId) !== "purple") continue;
-    const s = toDate(ev.start);
-    const e = toDate(ev.end);
-    if (!s || !e) continue;
-
-    if (!isToday) {
-      // Future purple events are never deferred — keep at their scheduled time.
-      occupied.push({ start: s, end: e });
-      continue;
-    }
-
-    const { decision, reason } = evaluatePurpleTask(ev, stateLevel, redTomorrow);
-    notes.push(reason);
-
-    if (decision === "defer") {
-      deferredPurple.push(ev);
-      // Remove from calendar by deleting the local override.
-      // (Only local/overridden events are deletable; Google events are hidden
-      //  via a "hidden" override — handled by the caller.)
-      actions.push({ type: "delete", id: ev.id });
-    } else {
-      // Keep it occupied so blue tasks don't overlap.
-      occupied.push({ start: s, end: e });
-    }
-  }
-
-  // ── 3. Prioritise and place blue tasks ──────────────────────────────────
+  // ── 2. Prioritise and place blue tasks ──────────────────────────────────
 
   if (pendingTasks.length === 0) {
-    return { actions, notes, deferredPurple };
+    return { actions, notes };
   }
 
   const sorted = [...pendingTasks].sort(
@@ -524,7 +427,7 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
     }
   }
 
-  return { actions, notes, deferredPurple };
+  return { actions, notes };
 }
 
 /** Helper: merge + sort intervals (avoids importing mergeIntervals above). */
@@ -605,9 +508,5 @@ export function scheduleTwoDays(
         : "",
       ...tomorrowResult.notes,
     ].filter(Boolean),
-    deferredPurple: [
-      ...todayResult.deferredPurple,
-      ...tomorrowResult.deferredPurple,
-    ],
   };
 }
