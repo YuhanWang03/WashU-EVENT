@@ -254,13 +254,7 @@ export default function CalendarApp() {
         ? new Date(Date.now() + elapsedMinutes * 60000)
         : new Date();
 
-      const result = scheduleTwoDays(
-        today,
-        events,
-        pending,
-        "normal",
-        currentTime,
-      );
+      const result = scheduleTwoDays(today, events, pending, currentTime);
 
       if (result.actions.length > 0) {
         handleApplyActions(result.actions);

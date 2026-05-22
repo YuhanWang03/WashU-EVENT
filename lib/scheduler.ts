@@ -6,7 +6,7 @@
  * Responsibilities:
  *  1. Build an occupied timeline from red + green events (+ invisible buffers).
  *  2. Find free slots within the schedulable window (08:00 – 22:00).
- *  3. Prioritise blue tasks by deadline urgency × difficulty × state fit.
+ *  3. Prioritise blue tasks by deadline urgency × difficulty.
  *  4. Place tasks greedily, splitting blocks > MAX_BLOCK_MIN and inserting
  *     invisible breaks between every task.
  *
@@ -16,7 +16,6 @@
 
 import { addMinutes, format, isSameDay, differenceInCalendarDays } from "date-fns";
 import type { CalendarEvent } from "@/lib/types";
-import type { StateLevel } from "@/lib/types";
 import { getTaskCategory } from "@/lib/taskCategory";
 import { isLocalId } from "@/lib/localStore";
 import type { CalendarAction } from "@/lib/actions";
@@ -34,25 +33,15 @@ const MAX_BLOCK_NEAR_DEADLINE_MIN = 60;
 
 /**
  * Invisible break inserted AFTER every non-red/green block (minutes).
- * Gemini never sees these — they are subtracted from available time only.
+ * The assistant never sees these — they are subtracted from available time only.
  */
-const BREAK_AFTER: Record<StateLevel, number> = {
-  peak:   5,
-  good:   10,
-  normal: 15,
-  low:    20,
-};
+const BREAK_AFTER_MIN = 10;
 
 /**
  * Invisible buffer reserved BEFORE every red task (minutes).
  * Gives the user time to travel and mentally prepare.
  */
-const RED_BUFFER: Record<StateLevel, number> = {
-  peak:   15,
-  good:   15,
-  normal: 20,
-  low:    30,
-};
+const RED_BUFFER_MIN = 15;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,7 +84,6 @@ export type SchedulerInput = {
   events: CalendarEvent[];
   /** Blue tasks that still need time allocated. */
   pendingTasks: BlueTask[];
-  stateLevel: StateLevel;
   /**
    * If provided, slots before this time are skipped (mid-day rescheduling).
    * Defaults to targetDate 08:00 when omitted.
@@ -211,25 +199,14 @@ function deadlineUrgency(deadline: string | null, targetDate: Date): number {
  * Compute a priority score for a blue task.
  * Higher = place sooner / earlier in the day.
  */
-function taskPriority(
-  task: BlueTask,
-  stateLevel: StateLevel,
-  targetDate: Date,
-): number {
+function taskPriority(task: BlueTask, targetDate: Date): number {
   const urgency = deadlineUrgency(task.deadline, targetDate);
-  const diffScore = task.difficulty; // 1–4
 
   // Exam/interview prep always gets a bonus.
   const typeBonus =
     task.type === "exam_prep" || task.type === "interview_prep" ? 2 : 0;
 
-  // When state is low, prefer easy tasks (invert difficulty weight).
-  const stateFactor =
-    stateLevel === "low" || stateLevel === "normal"
-      ? 5 - task.difficulty  // easy tasks get higher score when fatigued
-      : diffScore;           // hard tasks preferred when energised
-
-  return urgency * 2 + stateFactor + typeBonus;
+  return urgency * 2 + task.difficulty + typeBonus;
 }
 
 // ── Block sizing ─────────────────────────────────────────────────────────────
@@ -268,40 +245,24 @@ function splitIntoBlocks(task: BlueTask, targetDate: Date): number[] {
   return blocks;
 }
 
-// ── Preferred time windows by difficulty + state ─────────────────────────────
+// ── Preferred time windows by difficulty ─────────────────────────────────────
 
 /**
- * For a given state level and task difficulty, return the preferred start
- * hour range [earliestHour, latestStartHour].
+ * For a given task difficulty, return the preferred start hour range
+ * [earliestHour, latestStartHour]. Harder work is placed earlier in the day.
  */
 function preferredWindow(
   difficulty: TaskDifficulty,
-  stateLevel: StateLevel,
 ): { earliest: number; latest: number } {
-  // Peak / Good: hard work in the morning, easy in the afternoon/evening.
-  if (stateLevel === "peak") {
-    if (difficulty >= 3) return { earliest: 6,  latest: 12 };
-    if (difficulty === 2) return { earliest: 13, latest: 17 };
-    return                       { earliest: 14, latest: 23 };
-  }
-  if (stateLevel === "good") {
-    if (difficulty >= 3) return { earliest: 7,  latest: 12 };
-    if (difficulty === 2) return { earliest: 13, latest: 17 };
-    return                       { earliest: 14, latest: 23 };
-  }
-  // Normal / Low: avoid very early morning.
-  if (stateLevel === "normal") {
-    if (difficulty >= 3) return { earliest: 9, latest: 13 };
-    return                       { earliest: 9, latest: 22 };
-  }
-  // Low: everything pushed later; minimise cognitive load.
-  return { earliest: 10, latest: 22 };
+  if (difficulty >= 3) return { earliest: 7,  latest: 12 };
+  if (difficulty === 2) return { earliest: 13, latest: 17 };
+  return                       { earliest: 14, latest: 23 };
 }
 
 // ── Main scheduling function ─────────────────────────────────────────────────
 
 export function scheduleDay(input: SchedulerInput): SchedulerOutput {
-  const { targetDate, events, pendingTasks, stateLevel, currentTime } = input;
+  const { targetDate, events, pendingTasks, currentTime } = input;
   const { start: dayStart, end: dayEnd } = dayBounds(targetDate);
 
   // Effective window start: now (if mid-day) or 08:00.
@@ -329,7 +290,7 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
 
     if (cat === "red") {
       // Reserve the event itself + pre-buffer.
-      const bufferMin = RED_BUFFER[stateLevel];
+      const bufferMin = RED_BUFFER_MIN;
       const bufferStart = addMinutes(s, -bufferMin);
       occupied.push({
         start: bufferStart < dayStart ? dayStart : bufferStart,
@@ -351,15 +312,13 @@ export function scheduleDay(input: SchedulerInput): SchedulerOutput {
   }
 
   const sorted = [...pendingTasks].sort(
-    (a, b) =>
-      taskPriority(b, stateLevel, targetDate) -
-      taskPriority(a, stateLevel, targetDate),
+    (a, b) => taskPriority(b, targetDate) - taskPriority(a, targetDate),
   );
 
   for (const task of sorted) {
     const blocks = splitIntoBlocks(task, targetDate);
-    const pref = preferredWindow(task.difficulty, stateLevel);
-    const breakAfter = BREAK_AFTER[stateLevel];
+    const pref = preferredWindow(task.difficulty);
+    const breakAfter = BREAK_AFTER_MIN;
 
     for (const blockMin of blocks) {
       // Required slot: block + break.
@@ -459,7 +418,6 @@ export function scheduleTwoDays(
   today: Date,
   events: CalendarEvent[],
   pendingTasks: BlueTask[],
-  stateLevel: StateLevel,
   currentTime?: Date,
 ): SchedulerOutput {
   const tomorrow = new Date(today);
@@ -471,7 +429,6 @@ export function scheduleTwoDays(
     targetDate: today,
     events,
     pendingTasks,
-    stateLevel,
     currentTime,
   });
 
@@ -496,7 +453,6 @@ export function scheduleTwoDays(
     targetDate: tomorrow,
     events,
     pendingTasks: rollover,
-    stateLevel,
   });
 
   return {
