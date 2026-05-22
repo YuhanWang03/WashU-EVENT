@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Structured "tool calls" that Gemini can emit in its reply. The model
+ * Structured "tool calls" that the assistant can emit in its reply. The model
  * outputs a `<calendar-actions>...</calendar-actions>` block containing
  * a JSON object with an `actions` array; the client parses it and
  * dispatches each one to the local scratch store.
@@ -37,7 +37,7 @@ export type CalendarAction =
   | {
       /**
        * Signals the frontend to run scheduleTwoDays() for the remaining day.
-       * Gemini emits this when the user returns from an interruption and the
+       * The assistant emits this when the user returns from an interruption and the
        * remaining schedule needs a full re-optimisation.
        */
       type: "reschedule";
@@ -120,7 +120,7 @@ export function composeLocalDate(
 
 /**
  * Drop any move/create actions that would place an event outside the
- * allowed window (06:00 – 23:59). This is a safety net for when Gemini
+ * allowed window (06:00 – 23:59). This is a safety net for when the assistant
  * ignores the prompt constraints.
  */
 export function sanitizeActions(actions: CalendarAction[]): CalendarAction[] {

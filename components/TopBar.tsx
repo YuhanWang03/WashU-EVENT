@@ -80,10 +80,10 @@ export default function TopBar({
               ? "border-gcal-blue text-gcal-blue"
               : "border-gcal-border text-gcal-text hover:bg-[#EDE8FF]"
           }`}
-          title={chatOpen ? "Hide Gemini chat" : "Show Gemini chat"}
+          title={chatOpen ? "Hide Cadence chat" : "Show Cadence chat"}
         >
           <SparkleIcon />
-          Gemini
+          Cadence
         </button>
         {user && (
           <button

@@ -187,7 +187,7 @@ export default function CalendarApp() {
     setEditing(null);
   };
 
-  // Apply a batch of structured actions coming from Gemini. Each action is
+  // Apply a batch of structured actions coming from the assistant. Each action is
   // dispatched through the local store, exactly like a manual drag/edit.
   const handleApplyActions = useCallback(
     (actions: CalendarAction[]): number => {

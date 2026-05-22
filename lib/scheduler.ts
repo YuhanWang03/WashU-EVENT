@@ -11,7 +11,7 @@
  *     invisible breaks between every task.
  *
  * Output is a CalendarAction[] that CalendarApp applies through the same
- * handleApplyActions path used by Gemini — no separate code path needed.
+ * handleApplyActions path used by the assistant — no separate code path needed.
  */
 
 import { addMinutes, format, isSameDay, differenceInCalendarDays } from "date-fns";

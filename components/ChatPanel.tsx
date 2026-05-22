@@ -109,7 +109,7 @@ export default function ChatPanel({
         if (n > 0) appliedNote = summarizeActions(calendarActions.slice(0, n));
       }
 
-      // Trigger full re-optimisation if Gemini requested it.
+      // Trigger full re-optimisation if the assistant requested it.
       if (rescheduleAction && onReschedule) {
         onReschedule(rescheduleAction.elapsedMinutes);
       }
@@ -143,7 +143,7 @@ export default function ChatPanel({
       <div className="flex items-center justify-between border-b border-gcal-border px-4 py-3">
         <div className="flex items-center gap-2">
           <SparkleIcon />
-          <span className="text-sm font-medium text-gcal-text">Gemini</span>
+          <span className="text-sm font-medium text-gcal-text">Cadence</span>
         </div>
         <div className="flex items-center gap-1 text-gcal-subtext">
           <button
@@ -166,7 +166,7 @@ export default function ChatPanel({
 
       {/* Disclaimer */}
       <div className="px-4 py-2 text-[11px] text-gcal-subtext">
-        Gemini is an AI and may make mistakes. Your conversations are
+        Cadence is an AI and may make mistakes. Your conversations are
         personalized.
       </div>
 
@@ -239,7 +239,7 @@ export default function ChatPanel({
               send();
             }
           }}
-          placeholder="Message Gemini or @ mention a tab"
+          placeholder="Message Cadence about your schedule"
           rows={2}
           className="max-h-32 w-full resize-none rounded-2xl bg-transparent px-4 pt-3 text-sm text-gcal-text placeholder:text-gcal-subtext focus:outline-none"
         />

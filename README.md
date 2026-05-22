@@ -1,9 +1,10 @@
-# WashU-EVENT
+# Cadence
 
-A Google Calendar–style web app with a **Gemini** chat assistant panel on
-the right. Users sign in with their Google account, their primary calendar
-events are rendered in a week view, and a Gemini-powered chat panel has
-read-only awareness of the events currently in view.
+A Google Calendar–style web app with a **Cadence** AI chat assistant panel
+on the right (powered by DeepSeek via an OpenAI-compatible API). Users sign
+in with their Google account, their primary calendar events are rendered in
+a week view, and the chat panel has read-only awareness of the events
+currently in view.
 
 ## Features
 
@@ -17,8 +18,8 @@ read-only awareness of the events currently in view.
   **Google Calendar is never written to** — the app reads Google events
   and keeps your edits strictly local, so nothing you do here shows up in
   your real calendar.
-- **Gemini chat panel** (`gemini-2.5-flash`) that receives the week's events
-  (including your local edits) as context, so you can ask things like
+- **Cadence chat panel** (DeepSeek `deepseek-chat`) that receives the week's
+  events (including your local edits) as context, so you can ask things like
   *"What meetings do I have today?"* or *"Find a 30 minute free slot this week."*
 - **Automatic token refresh** for long-running sessions.
 
@@ -28,7 +29,7 @@ read-only awareness of the events currently in view.
 - Tailwind CSS
 - NextAuth.js (Google provider)
 - Google Calendar API v3 (REST)
-- `@google/generative-ai` for Gemini
+- `openai` SDK pointed at DeepSeek (OpenAI-compatible API)
 
 ## Getting started
 
@@ -53,9 +54,9 @@ npm install
    ```
 5. Copy the generated **Client ID** and **Client secret**.
 
-### 3. Create a Gemini API key
+### 3. Create a DeepSeek API key
 
-Get a key at <https://aistudio.google.com/app/apikey>.
+Get a key at <https://platform.deepseek.com/api_keys>.
 
 ### 4. Configure environment variables
 
@@ -66,7 +67,7 @@ NEXTAUTH_SECRET=$(openssl rand -base64 32)
 NEXTAUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-GOOGLE_GEMINI_API_KEY=...
+DEEPSEEK_API_KEY=...
 ```
 
 ### 5. Run it
@@ -107,7 +108,7 @@ app/
   api/
     auth/[...nextauth]/route.ts   NextAuth handler
     calendar/events/route.ts      Fetches events from Google Calendar
-    gemini/chat/route.ts          Gemini chat endpoint (context-aware)
+    chat/route.ts                 Chat endpoint (context-aware, DeepSeek)
   layout.tsx                      Root layout + SessionProvider
   page.tsx                        Landing / calendar app entry
 components/
@@ -115,7 +116,7 @@ components/
   TopBar.tsx                      Top navigation bar
   Sidebar.tsx                     Mini month + calendar list
   WeekView.tsx                    Week grid with event layout
-  ChatPanel.tsx                   Gemini chat side panel
+  ChatPanel.tsx                   Cadence chat side panel
   SignInScreen.tsx                Unauthenticated landing page
 lib/
   auth.ts                         NextAuth options + token refresh
@@ -127,6 +128,6 @@ lib/
 
 - The Google Calendar scope used is **read-only** (`calendar.readonly`).
 - Calendar events are fetched on demand from the browser and passed to
-  the Gemini endpoint as context; nothing is persisted server-side.
+  the chat endpoint as context; nothing is persisted server-side.
 - Revoke access any time at <https://myaccount.google.com/permissions>.
 

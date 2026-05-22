@@ -10,7 +10,7 @@ export default function SignInScreen() {
           <CadenceLogo size={44} />
           <div>
             <h1 className="text-xl font-semibold text-gcal-text">Cadence</h1>
-            <p className="text-xs text-gcal-subtext">with Gemini assistant</p>
+            <p className="text-xs text-gcal-subtext">study-planning assistant</p>
           </div>
         </div>
 
@@ -19,7 +19,7 @@ export default function SignInScreen() {
         </h2>
         <p className="mb-8 text-sm text-gcal-subtext">
           Connect your Google account to view your calendar and chat with
-          Gemini about your schedule.
+          Cadence about your schedule.
         </p>
 
         <button
@@ -32,7 +32,7 @@ export default function SignInScreen() {
 
         <p className="mt-6 text-[11px] leading-relaxed text-gcal-subtext">
           We request read-only access to your Google Calendar so we can display
-          your events and give Gemini the context it needs. You can revoke
+          your events and give the assistant the context it needs. You can revoke
           access at any time in your Google Account settings.
         </p>
       </div>

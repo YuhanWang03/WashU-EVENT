@@ -4,7 +4,7 @@ import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: "Cadence",
-  description: "Cadence — a smart scheduling assistant powered by Gemini.",
+  description: "Cadence — a smart study-planning assistant powered by DeepSeek.",
   icons: { icon: "/favicon.svg" },
 };
 

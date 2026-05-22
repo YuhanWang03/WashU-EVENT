@@ -90,8 +90,8 @@ export const CATEGORY_STYLE: Record<TaskCategory, CategoryStyle> = {
 };
 
 /**
- * Short label used in schedule text sent to Gemini, e.g. "[cat=red]".
- * Gemini uses this to apply category-specific scheduling rules.
+ * Short label used in schedule text sent to the assistant, e.g. "[cat=red]".
+ * The assistant uses this to apply category-specific scheduling rules.
  */
 export function categoryTag(colorId: string | null | undefined): string {
   return `[cat=${getTaskCategory(colorId)}]`;

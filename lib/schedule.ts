@@ -6,7 +6,7 @@ import { categoryTag } from "@/lib/taskCategory";
 
 /**
  * Produce a markdown-ish, human-readable per-day schedule for the current
- * week view, including explicit free slots. This is sent to Gemini as
+ * week view, including explicit free slots. This is sent to the assistant as
  * context so it doesn't have to reason about absolute ISO timestamps or
  * infer that blank time == free time.
  *
