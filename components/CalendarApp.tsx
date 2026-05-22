@@ -30,13 +30,6 @@ import EventModal from "@/components/EventModal";
 import { buildScheduleText } from "@/lib/schedule";
 import { composeLocalDate, type CalendarAction } from "@/lib/actions";
 import {
-  buildHealthText,
-  computeStateLevel,
-  type DetailedHealth,
-  type HealthSummary,
-} from "@/lib/health";
-import type { StateLevel } from "@/lib/types";
-import {
   addBlueTask,
   loadBlueTasks,
   pendingTasks as getPendingTasks,
@@ -45,7 +38,6 @@ import {
 import { scheduleTwoDays, type BlueTask } from "@/lib/scheduler";
 import { getTaskCategory } from "@/lib/taskCategory";
 import BlueTaskPanel from "@/components/BlueTaskPanel";
-import DailyBriefing from "@/components/DailyBriefing";
 
 function truncate(text: string, max: number) {
   if (!text) return "";
@@ -68,14 +60,8 @@ export default function CalendarApp() {
   const [error, setError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(true);
   const [editing, setEditing] = useState<EditingState>(null);
-  const [health, setHealth] = useState<HealthSummary | null>(null);
-  const [detailedHealth, setDetailedHealth] = useState<DetailedHealth | null>(null);
-  const [stateLevel, setStateLevel] = useState<StateLevel | null>(null);
   const [blueTasks, setBlueTasks] = useState<BlueTask[]>([]);
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
-  const [briefingOpen, setBriefingOpen] = useState(false);
-  const [schedulerNotes, setSchedulerNotes] = useState<string[]>([]);
-  const [deferredPurpleNames, setDeferredPurpleNames] = useState<string[]>([]);
 
   // Load per-user store from localStorage on mount / user change.
   useEffect(() => {
@@ -111,11 +97,6 @@ export default function CalendarApp() {
     [weekDays, events],
   );
 
-  const healthText = useMemo(
-    () => buildHealthText(health, detailedHealth, stateLevel),
-    [health, detailedHealth, stateLevel],
-  );
-
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -145,51 +126,13 @@ export default function CalendarApp() {
     fetchEvents();
   }, [fetchEvents]);
 
-  // Fetch Google Fit data once per session.  We fire both requests in
-  // parallel; failures null out the relevant state so the app degrades
-  // gracefully — Gemini still works, just without health context.
+  // Run an initial schedule pass once events have loaded for the week.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [summaryRes, detailRes] = await Promise.all([
-          fetch("/api/fit/summary"),
-          fetch("/api/fit/detail"),
-        ]);
-
-        const summaryData: HealthSummary = summaryRes.ok
-          ? await summaryRes.json()
-          : { available: false };
-
-        const detailData: DetailedHealth | null = detailRes.ok
-          ? await detailRes.json()
-          : null;
-
-        if (!cancelled) {
-          setHealth(summaryData);
-          setDetailedHealth(detailData);
-          const level = computeStateLevel(summaryData, detailData);
-          setStateLevel(level);
-          // Trigger initial scheduling after health data is available.
-          setTimeout(() => {
-            triggerReschedule();
-            // Show daily briefing once per day.
-            const todayKey = new Date().toISOString().slice(0, 10);
-            const briefingKey = `washu-event-briefing::${userKey}::${todayKey}`;
-            if (!localStorage.getItem(briefingKey)) {
-              setBriefingOpen(true);
-              localStorage.setItem(briefingKey, "1");
-            }
-          }, 100);
-        }
-      } catch {
-        if (!cancelled) setHealth({ available: false });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userKey]);
+    if (googleEvents.length === 0 && blueTasks.length === 0) return;
+    const t = setTimeout(() => triggerReschedule(), 100);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userKey, googleEvents.length, blueTasks.length]);
 
   const goToday = () => setAnchorDate(new Date());
   const goPrev = () => setAnchorDate((d) => addWeeksSafe(d, -1));
@@ -287,7 +230,7 @@ export default function CalendarApp() {
   );
 
   // Run the scheduling engine for today + tomorrow.
-  // Called after health data loads, after tasks are added, or on reschedule signal.
+  // Called on initial load, after tasks are added, or on a reschedule signal.
   const triggerReschedule = useCallback(
     (elapsedMinutes?: number) => {
       const today = new Date();
@@ -315,7 +258,7 @@ export default function CalendarApp() {
         today,
         events,
         pending,
-        stateLevel ?? "normal",
+        "normal",
         currentTime,
       );
 
@@ -323,12 +266,9 @@ export default function CalendarApp() {
         handleApplyActions(result.actions);
       }
 
-      // Store output for the daily briefing.
-      setSchedulerNotes(result.notes);
-      setDeferredPurpleNames(result.deferredPurple.map((e) => e.summary));
       return result;
     },
-    [events, blueTasks, stateLevel, handleApplyActions],
+    [events, blueTasks, handleApplyActions],
   );
 
   // Add a blue task and immediately trigger scheduling.
@@ -383,9 +323,6 @@ export default function CalendarApp() {
               events={events}
               viewLabel={viewLabel}
               scheduleText={scheduleText}
-              healthText={healthText}
-              health={health}
-              stateLevel={stateLevel}
               onClose={() => setChatOpen(false)}
               onApplyActions={handleApplyActions}
               onReschedule={triggerReschedule}
@@ -393,27 +330,6 @@ export default function CalendarApp() {
           </aside>
         )}
       </div>
-
-      <DailyBriefing
-        open={briefingOpen}
-        onClose={() => setBriefingOpen(false)}
-        stateLevel={stateLevel}
-        health={health}
-        detailedHealth={detailedHealth}
-        events={events}
-        schedulerNotes={schedulerNotes}
-        deferredPurpleNames={deferredPurpleNames}
-        onAddNap={(start, end) => {
-          setStore((s) =>
-            addLocalEvent(s, {
-              summary: "Nap",
-              start: start.toISOString(),
-              end: end.toISOString(),
-            }).store,
-          );
-          setBriefingOpen(false);
-        }}
-      />
 
       <BlueTaskPanel
         open={taskPanelOpen}

@@ -8,8 +8,6 @@ import {
   summarizeActions,
   type CalendarAction,
 } from "@/lib/actions";
-import { healthPillLabel, type HealthSummary } from "@/lib/health";
-import type { StateLevel } from "@/lib/types";
 
 type ChatMessageWithActions = ChatMessage & { appliedNote?: string };
 
@@ -17,12 +15,9 @@ type Props = {
   events: CalendarEvent[];
   viewLabel: string;
   scheduleText: string;
-  healthText?: string;
-  health?: HealthSummary | null;
-  stateLevel?: StateLevel | null;
   onClose: () => void;
   onApplyActions?: (actions: CalendarAction[]) => number;
-  /** Called when Gemini emits a reschedule signal. */
+  /** Called when the assistant emits a reschedule signal. */
   onReschedule?: (elapsedMinutes?: number) => void;
 };
 
@@ -30,9 +25,6 @@ export default function ChatPanel({
   events,
   viewLabel,
   scheduleText,
-  healthText,
-  health,
-  stateLevel,
   onClose,
   onApplyActions,
   onReschedule,
@@ -82,7 +74,6 @@ export default function ChatPanel({
           })),
           viewLabel,
           scheduleText,
-          healthText,
           currentTime: new Date().toISOString(),
         }),
       });
@@ -139,14 +130,12 @@ export default function ChatPanel({
   };
 
   const suggestions = [
-    "Optimize today based on my health",
+    "Optimize my schedule for today",
     "Going to eat",
     "Going home",
     "I'm back",
     "Find a free slot this week",
   ];
-
-  const healthPill = healthPillLabel(health ?? null, stateLevel);
 
   return (
     <div className="flex h-full flex-col">
@@ -238,24 +227,6 @@ export default function ChatPanel({
         </div>
         <span className="text-[11px] text-gcal-subtext">+{events.length} events</span>
       </div>
-
-      {healthPill && (
-        <div
-          className={`mx-4 mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm ${
-            stateLevel === "peak"
-              ? "border-[#B39AE8] bg-[#EDE7FF] text-[#4A2FA0]"
-              : stateLevel === "good"
-                ? "border-[#aac4aa] bg-[#D8F0DC] text-[#1A5C2A]"
-                : stateLevel === "low"
-                  ? "border-[#E87FAD] bg-[#FFD9EE] text-[#8B1A45]"
-                  : "border-gcal-border bg-gcal-panel text-gcal-text"
-          }`}
-        >
-          <HeartIcon />
-          <div className="flex-1 truncate">Health</div>
-          <span className="text-[11px] font-medium">{healthPill}</span>
-        </div>
-      )}
 
       {/* Composer */}
       <div className="mx-3 mb-3 rounded-2xl border border-gcal-border bg-gcal-panel shadow-sm">
@@ -375,13 +346,6 @@ function CalendarPillIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="#1a73e8">
       <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-    </svg>
-  );
-}
-function HeartIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="#ea4335">
-      <path d="M12 21s-7-4.35-9.5-8.5C.5 8.5 3 5 6.5 5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 5 23.5 8.5 21.5 12.5 19 16.65 12 21 12 21z" />
     </svg>
   );
 }

@@ -50,7 +50,6 @@ export async function POST(req: NextRequest) {
     events?: CalendarEventLite[];
     viewLabel?: string;
     scheduleText?: string;
-    healthText?: string;
     currentTime?: string;
   };
   try {
@@ -64,7 +63,6 @@ export async function POST(req: NextRequest) {
     events = [],
     viewLabel = "",
     scheduleText = "",
-    healthText = "",
     currentTime = "",
   } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
     : `Events in view (no pre-computed schedule):\n${formatEventsForPrompt(events)}`;
 
   const systemInstruction = [
-    "You are an intelligent health-aware calendar assistant. Your primary goal is to help the user perform at their best — especially during red (fixed/mandatory) tasks — by dynamically arranging their schedule based on health data.",
+    "You are an intelligent study-planning calendar assistant. Your primary goal is to help the user perform at their best — especially during red (fixed/mandatory) tasks — by arranging their flexible work around their fixed commitments and deadlines.",
     "",
     "═══ TASK CATEGORIES ═══",
     "Every event in the SCHEDULE has a [cat=X] tag. Respect these rules strictly:",
@@ -116,16 +114,8 @@ export async function POST(req: NextRequest) {
     "→ If duration is unclear (e.g. 'professor needs me', 'watching a movie'): ask 'How long do you expect to be away?' before rescheduling.",
     "→ When user returns ('I'm back', 'back'): ask how long they were away, then reoptimise the remaining day.",
     "",
-    "═══ HEALTH-AWARE SCHEDULING (rule 9) ═══",
-    "Read the HEALTH section carefully. The overall state level is the primary signal.",
-    "  PEAK:   Schedule difficulty-4/3 tasks 06:00–12:00. Difficulty-2 tasks 13:00–17:00. Easy tasks fill gaps.",
-    "  GOOD:   Schedule difficulty-4/3 tasks 09:00–12:00. Difficulty-2 tasks 13:00–17:00.",
-    "  NORMAL: Difficulty-3/4 tasks 10:00–13:00 only. Prefer easy/medium tasks. More breaks.",
-    "  LOW:    Only easy tasks. Defer hard tasks to tomorrow if deadline allows. Maximise rest before red tasks.",
-    "Purple tasks:",
-    "  LOW state → always defer. NORMAL + early red task tomorrow → defer. Otherwise keep.",
-    "Sleep deficit (<5h or state=LOW): proactively suggest a nap in the first available free slot:",
-    "  20–30 min free → power nap (no deep sleep, clearer after). 60–90 min → full cycle. <20 min → close eyes, breathe.",
+    "═══ DIFFICULTY-AWARE SCHEDULING ═══",
+    "Prefer harder tasks (difficulty 3–4) earlier in the day (09:00–13:00) when focus is highest; place easy/medium tasks in the afternoon and evening. Keep more breaks between back-to-back hard blocks.",
     "",
     "═══ GREEN TASK ATTENDANCE REPORTING ═══",
     "When the user says 'I didn't go to [event]', '[event] ended early — X min', '[event] is running late':",
@@ -147,9 +137,6 @@ export async function POST(req: NextRequest) {
     "",
     `Current view: ${viewLabel || "(unspecified)"}`,
     `Current time: ${currentTime ? new Date(currentTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "(unknown)"}`,
-    "",
-    "HEALTH:",
-    healthText || "(Health data unavailable — assume NORMAL state level. Apply scheduling rules as if state is NORMAL. Do NOT mention health data being missing to the user.)",
     "",
     "SCHEDULE:",
     scheduleSection,
