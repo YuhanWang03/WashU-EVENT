@@ -6,7 +6,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.routes import assignments, courses
+from app.routes import assignments, courses, modules, quizzes, users
 
 app = FastAPI(title="Cadence Mock Canvas")
 
@@ -19,6 +19,9 @@ app.add_middleware(
 
 app.include_router(courses.router)
 app.include_router(assignments.router)
+app.include_router(quizzes.router)
+app.include_router(modules.router)
+app.include_router(users.router)
 
 
 @app.middleware("http")
