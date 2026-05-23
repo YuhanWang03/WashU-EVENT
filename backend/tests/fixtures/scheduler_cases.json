@@ -1,0 +1,314 @@
+[
+  {
+    "name": "empty-day",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [],
+      "pendingTasks": []
+    },
+    "expected": {
+      "actions": [],
+      "notes": []
+    }
+  },
+  {
+    "name": "single-hard-task-no-events",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Read paper",
+          "type": "reading",
+          "estimatedMinutes": 90,
+          "difficulty": 3,
+          "deadline": null
+        }
+      ]
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Read paper",
+          "day": "2026-05-25",
+          "start": "06:00",
+          "end": "07:30"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "split-into-two-blocks",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Long essay",
+          "type": "project",
+          "estimatedMinutes": 150,
+          "difficulty": 1,
+          "deadline": null
+        }
+      ]
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Long essay",
+          "day": "2026-05-25",
+          "start": "06:00",
+          "end": "07:30"
+        },
+        {
+          "type": "create",
+          "summary": "Long essay",
+          "day": "2026-05-25",
+          "start": "07:40",
+          "end": "08:40"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "red-event-buffer",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [
+        {
+          "id": "g1",
+          "summary": "Lecture",
+          "start": "2026-05-25T09:00:00",
+          "end": "2026-05-25T10:00:00",
+          "colorId": "10"
+        }
+      ],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Problem set",
+          "type": "homework",
+          "estimatedMinutes": 60,
+          "difficulty": 3,
+          "deadline": "2026-05-26"
+        }
+      ]
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Problem set",
+          "day": "2026-05-25",
+          "start": "10:00",
+          "end": "11:00"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "current-time-midday",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Quick review",
+          "type": "review",
+          "estimatedMinutes": 60,
+          "difficulty": 1,
+          "deadline": null
+        }
+      ],
+      "currentTime": "2026-05-25T15:30:00"
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Quick review",
+          "day": "2026-05-25",
+          "start": "15:30",
+          "end": "16:30"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "priority-ordering",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Low priority",
+          "type": "homework",
+          "estimatedMinutes": 60,
+          "difficulty": 1,
+          "deadline": null
+        },
+        {
+          "id": "t2",
+          "summary": "Due today",
+          "type": "homework",
+          "estimatedMinutes": 60,
+          "difficulty": 1,
+          "deadline": "2026-05-25"
+        }
+      ]
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Due today",
+          "day": "2026-05-25",
+          "start": "06:00",
+          "end": "07:00"
+        },
+        {
+          "type": "create",
+          "summary": "Low priority",
+          "day": "2026-05-25",
+          "start": "07:10",
+          "end": "08:10"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "green-no-buffer-and-exam-bonus",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [
+        {
+          "id": "g1",
+          "summary": "Office hour",
+          "start": "2026-05-25T13:00:00",
+          "end": "2026-05-25T14:00:00",
+          "colorId": "9"
+        }
+      ],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Exam prep",
+          "type": "exam_prep",
+          "estimatedMinutes": 60,
+          "difficulty": 2,
+          "deadline": null
+        }
+      ]
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Exam prep",
+          "day": "2026-05-25",
+          "start": "14:00",
+          "end": "15:00"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "local-id-blocks-slot",
+    "kind": "day",
+    "input": {
+      "targetDate": "2026-05-25T00:00:00",
+      "events": [
+        {
+          "id": "local_x1",
+          "summary": "Nap",
+          "start": "2026-05-25T10:00:00",
+          "end": "2026-05-25T11:00:00",
+          "colorId": null
+        }
+      ],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Study",
+          "type": "homework",
+          "estimatedMinutes": 60,
+          "difficulty": 1,
+          "deadline": null
+        }
+      ],
+      "currentTime": "2026-05-25T09:30:00"
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Study",
+          "day": "2026-05-25",
+          "start": "11:00",
+          "end": "12:00"
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "name": "two-day-rollover",
+    "kind": "twoDays",
+    "input": {
+      "today": "2026-05-25T00:00:00",
+      "events": [
+        {
+          "id": "g1",
+          "summary": "All day busy",
+          "start": "2026-05-25T06:00:00",
+          "end": "2026-05-26T00:00:00",
+          "colorId": "2"
+        }
+      ],
+      "pendingTasks": [
+        {
+          "id": "t1",
+          "summary": "Overflow",
+          "type": "homework",
+          "estimatedMinutes": 60,
+          "difficulty": 1,
+          "deadline": null
+        }
+      ]
+    },
+    "expected": {
+      "actions": [
+        {
+          "type": "create",
+          "summary": "Overflow",
+          "day": "2026-05-26",
+          "start": "06:00",
+          "end": "07:00"
+        }
+      ],
+      "notes": [
+        "⚠ Could not find a slot for \"Overflow\" (60 min) on May 25.",
+        "Rolled 1 task(s) to tomorrow: Overflow."
+      ]
+    }
+  }
+]
