@@ -1,133 +1,128 @@
 # Cadence
 
-A Google Calendar–style web app with a **Cadence** AI chat assistant panel
-on the right (powered by DeepSeek via an OpenAI-compatible API). Users sign
-in with their Google account, their primary calendar events are rendered in
-a week view, and the chat panel has read-only awareness of the events
-currently in view.
+> **Status: in active development.** Cadence began as a 36-hour DEVFEST WashU
+> hackathon app (Google Calendar + a DeepSeek chat assistant) and is being
+> refactored into an **AI study-planning agent** that syncs with **Canvas LMS**,
+> extracts tasks from syllabi/assignments, and generates adaptive study plans
+> you can revise in natural language.
 
-## Features
+The repo is a monorepo with a TypeScript frontend, a Python backend, and an
+in-repo mock of the Canvas API used for offline development.
 
-- **Google OAuth sign in** via NextAuth.js (with `calendar.readonly` scope).
-- **Week view** mimicking the Google Calendar UI: sticky header, mini-month
-  sidebar, all-day row, hour grid, current-time indicator, and overlap-safe
-  event columns.
-- **Local scratch layer** — drag events to move them, drag the bottom edge
-  to resize, click to edit title/times, click an empty slot to create a
-  new event. Everything is stored in `localStorage` keyed per user.
-  **Google Calendar is never written to** — the app reads Google events
-  and keeps your edits strictly local, so nothing you do here shows up in
-  your real calendar.
-- **Cadence chat panel** (DeepSeek `deepseek-chat`) that receives the week's
-  events (including your local edits) as context, so you can ask things like
-  *"What meetings do I have today?"* or *"Find a 30 minute free slot this week."*
-- **Automatic token refresh** for long-running sessions.
+## Architecture
 
-## Tech stack
+```
+frontend (Next.js 14)              backend (FastAPI, Python 3.12)
+  calendar UI + chat panel   ──HTTP──>  API + scheduler (+ future agents)
+  DeepSeek via /api/chat                       │
+                                               ├── Postgres · Redis · Chroma
+                                               └── Canvas API ──> mock_canvas
+                                                   (real Canvas when available)
+```
 
-- Next.js 14 (App Router) + React 18 + TypeScript
-- Tailwind CSS
-- NextAuth.js (Google provider)
-- Google Calendar API v3 (REST)
-- `openai` SDK pointed at DeepSeek (OpenAI-compatible API)
+## Components
 
-## Getting started
+| Path | What it is | Stack | Status |
+|---|---|---|---|
+| `app/`, `components/`, `lib/` | Frontend: calendar week-view + AI chat | Next.js 14, React 18, TS, Tailwind | working |
+| `backend/` | API + study-block scheduler (Python port) | FastAPI, uv, SQLAlchemy*, LangGraph* | scaffold + scheduler ([README](backend/README.md)) |
+| `mock_canvas/` | Wire-compatible mock of the Canvas LMS API | FastAPI, uv | working ([README](mock_canvas/README.md)) |
+| `docs/adr/` | Architecture decision records | — | [ADR-0001](docs/adr/0001-canvas-mock-server.md) |
 
-### 1. Install dependencies
+<sub>* planned, not yet built.</sub>
+
+## Quick start
+
+### Full stack (Docker)
+
+```bash
+docker compose up --build
+# postgres:5432 · redis:6379 · chroma:8001 · backend:8000 · mock_canvas:8080
+```
+
+### Frontend (dev)
 
 ```bash
 npm install
+npm run dev            # http://localhost:3000
 ```
+Needs Google OAuth credentials + a DeepSeek API key (see Configuration).
 
-### 2. Create Google OAuth credentials
-
-1. Open <https://console.cloud.google.com/apis/credentials>.
-2. Create an **OAuth client ID** of type *Web application*.
-3. Add the following as an **Authorized redirect URI**:
-   ```
-   http://localhost:3000/api/auth/callback/google
-   ```
-   (and your production URL, e.g. `https://your-domain.com/api/auth/callback/google`).
-4. Under **OAuth consent screen → Scopes**, add:
-   ```
-   https://www.googleapis.com/auth/calendar.readonly
-   ```
-5. Copy the generated **Client ID** and **Client secret**.
-
-### 3. Create a DeepSeek API key
-
-Get a key at <https://platform.deepseek.com/api_keys>.
-
-### 4. Configure environment variables
-
-Copy `.env.example` to `.env.local` and fill in:
-
-```env
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
-NEXTAUTH_URL=http://localhost:3000
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-DEEPSEEK_API_KEY=...
-```
-
-### 5. Run it
+### Backend (dev)
 
 ```bash
-npm run dev
+uv run --directory backend uvicorn app.main:app --port 8000
+uv run --directory backend ruff check . && uv run --directory backend mypy . && uv run --directory backend pytest
 ```
 
-Open <http://localhost:3000> and click **Sign in with Google**.
-
-## Deploying
-
-### Vercel (recommended)
-
-1. Push this repo to GitHub.
-2. Import the project on <https://vercel.com/new>.
-3. Set the environment variables from `.env.example` in the Vercel project
-   settings.
-4. Set `NEXTAUTH_URL` to your production URL (e.g. `https://washu-event.vercel.app`).
-5. In Google Cloud Console, add the production
-   `/api/auth/callback/google` URL to the OAuth client's authorized redirect URIs.
-6. Deploy.
-
-### Self-hosting
+### Mock Canvas (dev)
 
 ```bash
-npm run build
-npm run start
+uv run --directory mock_canvas uvicorn app.main:app --port 8080
+# see mock_canvas/README.md for endpoints, auth, and failure injection
 ```
 
-Run behind a reverse proxy (nginx/Caddy) with HTTPS and make sure
-`NEXTAUTH_URL` matches your public URL.
+## Configuration
+
+Copy `.env.example` and fill in values. Frontend keys (read by Next.js from
+`.env.local`): `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `DEEPSEEK_API_KEY`. Compose/Canvas keys (read by
+`docker compose` from `.env`): `MOCK_CANVAS_TOKEN`, `CANVAS_BASE_URL`,
+`CANVAS_ACCESS_TOKEN`.
+
+---
+
+## Frontend (the calendar app)
+
+A Google Calendar–style web app with a **Cadence** AI chat panel on the right
+(DeepSeek via an OpenAI-compatible API). Users sign in with Google, their
+primary-calendar events render in a week view, and the chat panel has read-only
+awareness of the events in view.
+
+**Features**
+- **Google OAuth sign in** via NextAuth.js (`calendar.readonly` scope).
+- **Week view** mimicking Google Calendar: sticky header, mini-month sidebar,
+  all-day row, hour grid, current-time indicator, overlap-safe columns.
+- **Local scratch layer** — drag to move/resize, click to edit, click empty
+  space to create. Stored in `localStorage` per user. **Google Calendar is
+  never written to.**
+- **Cadence chat panel** (`deepseek-chat`) that receives the week's events as
+  context and can apply schedule changes via a structured action block.
+
+**Setup**
+1. Create an OAuth client ID (Web application) at
+   <https://console.cloud.google.com/apis/credentials>; add redirect URI
+   `http://localhost:3000/api/auth/callback/google` and the
+   `https://www.googleapis.com/auth/calendar.readonly` scope.
+2. Get a DeepSeek key at <https://platform.deepseek.com/api_keys>.
+3. Copy `.env.example` → `.env.local`, fill in the frontend keys, `npm run dev`.
+
+**Deploying the frontend** (Vercel): import the repo, set the frontend env vars,
+set `NEXTAUTH_URL` to the production URL, and add the production
+`/api/auth/callback/google` redirect URI in Google Cloud Console. (The backend
+deploys separately via Docker, not Vercel.)
+
+**Privacy**: the Calendar scope is read-only; events are fetched on demand and
+passed to the chat endpoint as context, never persisted server-side. Revoke
+access at <https://myaccount.google.com/permissions>.
+
+## Roadmap
+
+- [x] Frontend calendar + DeepSeek chat (migrated off Gemini/Google Fit)
+- [x] Backend scaffold + greedy scheduler ported to Python (equivalence-tested)
+- [x] Mock Canvas API for offline dev + deterministic eval ground truth
+- [ ] Canvas client + sync (`backend/app/services`)
+- [ ] Persistence (Postgres/SQLAlchemy), syllabus extraction (PyMuPDF)
+- [ ] LangGraph agent orchestration + APScheduler periodic sync
+- [ ] Evaluation harness
 
 ## Project layout
 
 ```
-app/
-  api/
-    auth/[...nextauth]/route.ts   NextAuth handler
-    calendar/events/route.ts      Fetches events from Google Calendar
-    chat/route.ts                 Chat endpoint (context-aware, DeepSeek)
-  layout.tsx                      Root layout + SessionProvider
-  page.tsx                        Landing / calendar app entry
-components/
-  CalendarApp.tsx                 Top-level layout (sidebar + grid + chat)
-  TopBar.tsx                      Top navigation bar
-  Sidebar.tsx                     Mini month + calendar list
-  WeekView.tsx                    Week grid with event layout
-  ChatPanel.tsx                   Cadence chat side panel
-  SignInScreen.tsx                Unauthenticated landing page
-lib/
-  auth.ts                         NextAuth options + token refresh
-  dates.ts                        Date helpers
-  types.ts                        Shared types
+app/, components/, lib/   Next.js frontend (calendar + chat)
+backend/                  FastAPI service: scheduler now; agents/DB/Canvas next
+mock_canvas/              Wire-compatible Canvas API mock (offline dev + eval)
+scripts/                  Dev tooling (e.g. scheduler equivalence fixtures)
+docs/adr/                 Architecture decision records
+docker-compose.yml        Postgres · Redis · Chroma · backend · mock_canvas
 ```
-
-## Privacy notes
-
-- The Google Calendar scope used is **read-only** (`calendar.readonly`).
-- Calendar events are fetched on demand from the browser and passed to
-  the chat endpoint as context; nothing is persisted server-side.
-- Revoke access any time at <https://myaccount.google.com/permissions>.
-
