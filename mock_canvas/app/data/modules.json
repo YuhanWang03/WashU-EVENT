@@ -1,0 +1,32 @@
+{
+  "101": [
+    {"id": 3001, "name": "Week 1: Java & OOP Foundations", "position": 1, "items_count": 5},
+    {"id": 3002, "name": "Week 2: Inheritance & Interfaces", "position": 2, "items_count": 4},
+    {"id": 3003, "name": "Week 3: Generics & Collections", "position": 3, "items_count": 6},
+    {"id": 3004, "name": "Week 4: Design Patterns & Concurrency", "position": 4, "items_count": 5}
+  ],
+  "102": [
+    {"id": 3101, "name": "Unit 1: Vectors & the Geometry of Space", "position": 1, "items_count": 6},
+    {"id": 3102, "name": "Unit 2: Partial Derivatives", "position": 2, "items_count": 5},
+    {"id": 3103, "name": "Unit 3: Multiple Integrals", "position": 3, "items_count": 5},
+    {"id": 3104, "name": "Unit 4: Vector Calculus", "position": 4, "items_count": 4}
+  ],
+  "103": [
+    {"id": 3201, "name": "Module 1: What is Psychology?", "position": 1, "items_count": 4},
+    {"id": 3202, "name": "Module 2: Research Methods", "position": 2, "items_count": 5},
+    {"id": 3203, "name": "Module 3: Memory & Cognition", "position": 3, "items_count": 6},
+    {"id": 3204, "name": "Module 4: Social Psychology", "position": 4, "items_count": 4}
+  ],
+  "104": [
+    {"id": 3301, "name": "Unit 1: Rhetoric & Analysis", "position": 1, "items_count": 5},
+    {"id": 3302, "name": "Unit 2: Research & Sources", "position": 2, "items_count": 4},
+    {"id": 3303, "name": "Unit 3: Argumentation", "position": 3, "items_count": 5},
+    {"id": 3304, "name": "Unit 4: Revision & Style", "position": 4, "items_count": 3}
+  ],
+  "105": [
+    {"id": 3401, "name": "Unit 1: An Interconnected World, 1500-1650", "position": 1, "items_count": 5},
+    {"id": 3402, "name": "Unit 2: Revolutions & Enlightenment", "position": 2, "items_count": 6},
+    {"id": 3403, "name": "Unit 3: Industrialization & Empire", "position": 3, "items_count": 5},
+    {"id": 3404, "name": "Unit 4: The Modern World", "position": 4, "items_count": 4}
+  ]
+}

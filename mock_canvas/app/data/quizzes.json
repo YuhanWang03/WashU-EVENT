@@ -1,0 +1,22 @@
+{
+  "101": [
+    {"id": 2001, "title": "Quiz 1: OOP Basics", "due_at": "2026-05-31T23:59:00Z", "points_possible": 20, "quiz_type": "assignment"},
+    {"id": 2002, "title": "Quiz 2: Design Patterns", "due_at": "2026-06-14T23:59:00Z", "points_possible": 20, "quiz_type": "assignment"}
+  ],
+  "102": [
+    {"id": 2101, "title": "Quiz 1: Vectors & Geometry", "due_at": "2026-05-31T23:59:00Z", "points_possible": 15, "quiz_type": "assignment"},
+    {"id": 2102, "title": "Quiz 2: Multiple Integrals", "due_at": "2026-06-14T23:59:00Z", "points_possible": 15, "quiz_type": "assignment"}
+  ],
+  "103": [
+    {"id": 2201, "title": "Quiz 1: Foundations of Psychology", "due_at": "2026-06-01T23:59:00Z", "points_possible": 10, "quiz_type": "practice_quiz"},
+    {"id": 2202, "title": "Quiz 2: Cognition & Memory", "due_at": "2026-06-15T23:59:00Z", "points_possible": 10, "quiz_type": "assignment"}
+  ],
+  "104": [
+    {"id": 2301, "title": "Grammar Diagnostic", "due_at": "2026-05-27T23:59:00Z", "points_possible": 0, "quiz_type": "graded_survey"},
+    {"id": 2302, "title": "Citation Style Quiz (MLA)", "due_at": "2026-06-08T23:59:00Z", "points_possible": 10, "quiz_type": "assignment"}
+  ],
+  "105": [
+    {"id": 2401, "title": "Map Quiz: World 1500", "due_at": "2026-05-29T23:59:00Z", "points_possible": 15, "quiz_type": "assignment"},
+    {"id": 2402, "title": "Reading Quiz: Enlightenment", "due_at": "2026-06-09T23:59:00Z", "points_possible": 10, "quiz_type": "assignment"}
+  ]
+}
